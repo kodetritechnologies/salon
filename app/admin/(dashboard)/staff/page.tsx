@@ -32,6 +32,7 @@ export default function StaffOrganizer() {
   const [newStaffExperience, setNewStaffExperience] = useState("5 years");
   const [newStaffAvatarIndex, setNewStaffAvatarIndex] = useState(0);
   const [newStaffRating, setNewStaffRating] = useState(5.0);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { getMethod, postMethod, patchMethod, deleteMethod } = BasicProvider();
 
@@ -52,9 +53,67 @@ export default function StaffOrganizer() {
     fetchStaff();
   }, []);
 
+  const openAddModal = () => {
+    setNewStaffName("");
+    setNewStaffRole("Barber");
+    setNewStaffExperience("5 years");
+    setNewStaffAvatarIndex(0);
+    setNewStaffRating(5.0);
+    setErrors({});
+    setShowAddStaffModal(true);
+  };
+
+  const handleFieldChange = (setter: (val: any) => void, fieldKey: string, value: any) => {
+    setter(value);
+    if (errors[fieldKey]) {
+      setErrors((prev) => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!newStaffName.trim()) {
+      newErrors.name = "Stylist Full Name is required.";
+    } else if (newStaffName.trim().length < 3) {
+      newErrors.name = "Name must be at least 3 characters long.";
+    }
+
+    if (!newStaffRole.trim()) {
+      newErrors.role = "Specialist Role / Title is required.";
+    } else if (newStaffRole.trim().length < 3) {
+      newErrors.role = "Role must be at least 3 characters long.";
+    }
+
+    if (!newStaffExperience.trim()) {
+      newErrors.experience = "Experience description is required.";
+    }
+
+    if (newStaffRating === undefined || isNaN(newStaffRating)) {
+      newErrors.rating = "Rating is required.";
+    } else if (newStaffRating < 1.0 || newStaffRating > 5.0) {
+      newErrors.rating = "Rating must be between 1.0 and 5.0.";
+    }
+
+    setErrors(newErrors);
+
+    // Autofocus on first error
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorKey);
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   const addStaff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStaffName) return;
+    if (!validateForm()) return;
 
     try {
       const payload = {
@@ -75,6 +134,7 @@ export default function StaffOrganizer() {
         setNewStaffExperience("5 years");
         setNewStaffAvatarIndex(0);
         setNewStaffRating(5.0);
+        setErrors({});
         setShowAddStaffModal(false);
       } else {
         showError("Failed", data.message || "Failed to register stylist.");
@@ -149,7 +209,7 @@ export default function StaffOrganizer() {
         </div>
 
         <button
-          onClick={() => setShowAddStaffModal(true)}
+          onClick={openAddModal}
           className="inline-flex items-center gap-2 bg-gradient-gold px-4 py-2.5 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.02] transition-transform cursor-pointer"
         >
           <Plus className="h-4 w-4" />
@@ -248,19 +308,26 @@ export default function StaffOrganizer() {
                 </button>
               </div>
 
-              <form onSubmit={addStaff} className="space-y-4">
+              <form onSubmit={addStaff} noValidate className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Stylist Full Name
                   </label>
                   <input
                     type="text"
-                    required
+                    id="name"
                     placeholder="e.g. Ramesh Dev"
                     value={newStaffName}
-                    onChange={(e) => setNewStaffName(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewStaffName, "name", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.name ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.name && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -269,12 +336,19 @@ export default function StaffOrganizer() {
                   </label>
                   <input
                     type="text"
-                    required
+                    id="role"
                     placeholder="e.g. Hair Sculptor / Massage Pro"
                     value={newStaffRole}
-                    onChange={(e) => setNewStaffRole(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewStaffRole, "role", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.role ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.role && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.role}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid gap-4 grid-cols-2">
@@ -284,12 +358,19 @@ export default function StaffOrganizer() {
                     </label>
                     <input
                       type="text"
-                      required
+                      id="experience"
                       placeholder="e.g. 5 years"
                       value={newStaffExperience}
-                      onChange={(e) => setNewStaffExperience(e.target.value)}
-                      className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                      onChange={(e) => handleFieldChange(setNewStaffExperience, "experience", e.target.value)}
+                      className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                        errors.experience ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                      }`}
                     />
+                    {errors.experience && (
+                      <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                        {errors.experience}
+                      </span>
+                    )}
                   </div>
 
                   <div>
@@ -298,14 +379,21 @@ export default function StaffOrganizer() {
                     </label>
                     <input
                       type="number"
+                      id="rating"
                       step="0.1"
                       min="1"
                       max="5"
-                      required
                       value={newStaffRating}
-                      onChange={(e) => setNewStaffRating(Number(e.target.value))}
-                      className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                      onChange={(e) => handleFieldChange(setNewStaffRating, "rating", Number(e.target.value))}
+                      className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                        errors.rating ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                      }`}
                     />
+                    {errors.rating && (
+                      <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                        {errors.rating}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -315,7 +403,7 @@ export default function StaffOrganizer() {
                   </label>
                   <select
                     value={newStaffAvatarIndex}
-                    onChange={(e) => setNewStaffAvatarIndex(Number(e.target.value))}
+                    onChange={(e) => handleFieldChange(setNewStaffAvatarIndex, "avatarIndex", Number(e.target.value))}
                     className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 appearance-none cursor-pointer"
                   >
                     <option value={0}>Barber Avatar 1</option>

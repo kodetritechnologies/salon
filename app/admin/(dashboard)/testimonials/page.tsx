@@ -24,6 +24,7 @@ export default function AdminTestimonials() {
   const [role, setRole] = useState("Customer");
   const [text, setText] = useState("");
   const [rating, setRating] = useState(5);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { getMethod, postMethod, patchMethod, deleteMethod } = BasicProvider();
 
@@ -50,6 +51,7 @@ export default function AdminTestimonials() {
     setRole("Customer");
     setText("");
     setRating(5);
+    setErrors({});
     setShowModal(true);
   };
 
@@ -59,12 +61,57 @@ export default function AdminTestimonials() {
     setRole(t.role);
     setText(t.text);
     setRating(t.rating);
+    setErrors({});
     setShowModal(true);
+  };
+
+  const handleFieldChange = (setter: (val: any) => void, fieldKey: string, value: any) => {
+    setter(value);
+    if (errors[fieldKey]) {
+      setErrors((prev) => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!name.trim()) {
+      newErrors.name = "Client Name is required.";
+    } else if (name.trim().length < 3) {
+      newErrors.name = "Client Name must be at least 3 characters.";
+    }
+
+    if (!role.trim()) {
+      newErrors.role = "Profession / Subtitle is required.";
+    } else if (role.trim().length < 3) {
+      newErrors.role = "Profession / Subtitle must be at least 3 characters.";
+    }
+
+    if (!text.trim()) {
+      newErrors.text = "Review Text is required.";
+    } else if (text.trim().length < 10) {
+      newErrors.text = "Review Text must be at least 10 characters.";
+    }
+
+    setErrors(newErrors);
+
+    // Autofocus on first error
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorKey);
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !text) return;
+    if (!validateForm()) return;
 
     try {
       const payload = { name, role, text, rating };
@@ -219,19 +266,26 @@ export default function AdminTestimonials() {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} noValidate className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Client Name
                   </label>
                   <input
                     type="text"
-                    required
+                    id="name"
                     placeholder="e.g. Rohan Mehta"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setName, "name", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.name ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.name && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -240,11 +294,19 @@ export default function AdminTestimonials() {
                   </label>
                   <input
                     type="text"
+                    id="role"
                     placeholder="e.g. Software Engineer (or Customer)"
                     value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setRole, "role", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.role ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.role && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.role}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -253,7 +315,7 @@ export default function AdminTestimonials() {
                   </label>
                   <select
                     value={rating}
-                    onChange={(e) => setRating(Number(e.target.value))}
+                    onChange={(e) => handleFieldChange(setRating, "rating", Number(e.target.value))}
                     className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 cursor-pointer"
                   >
                     <option value={5}>5 Stars (Excellent)</option>
@@ -269,13 +331,20 @@ export default function AdminTestimonials() {
                     Review Text
                   </label>
                   <textarea
-                    required
                     rows={4}
+                    id="text"
                     placeholder="Provide the client's review text here..."
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-3 rounded-2xl text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setText, "text", e.target.value)}
+                    className={`w-full bg-background border px-4 py-3 rounded-2xl text-xs text-foreground outline-none transition-colors ${
+                      errors.text ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.text && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.text}
+                    </span>
+                  )}
                 </div>
 
                 <button

@@ -30,6 +30,7 @@ export default function ServicesCustomizer() {
   const [newServicePrice, setNewServicePrice] = useState("");
   const [newServiceDuration, setNewServiceDuration] = useState("30 min");
   const [newServiceCategory, setNewServiceCategory] = useState("Grooming");
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const fetchServices = async () => {
     const data = await getMethod("/api/services");
@@ -48,6 +49,7 @@ export default function ServicesCustomizer() {
     setNewServicePrice("");
     setNewServiceDuration("30 min");
     setNewServiceCategory("Grooming");
+    setErrors({});
     setShowAddServiceModal(true);
   };
 
@@ -57,12 +59,52 @@ export default function ServicesCustomizer() {
     setNewServicePrice(s.price.toString());
     setNewServiceDuration(s.duration);
     setNewServiceCategory(s.category);
+    setErrors({});
     setShowAddServiceModal(true);
+  };
+
+  const handleFieldChange = (setter: (val: any) => void, fieldKey: string, value: any) => {
+    setter(value);
+    if (errors[fieldKey]) {
+      setErrors((prev) => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!newServiceName.trim()) {
+      newErrors.name = "Treatment Name is required.";
+    } else if (newServiceName.trim().length < 3) {
+      newErrors.name = "Name must be at least 3 characters long.";
+    }
+
+    const priceVal = parseFloat(newServicePrice);
+    if (!newServicePrice.trim()) {
+      newErrors.price = "Cost Price is required.";
+    } else if (isNaN(priceVal) || priceVal <= 0) {
+      newErrors.price = "Cost Price must be a valid positive number.";
+    }
+
+    setErrors(newErrors);
+
+    // Autofocus on first error
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorKey);
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
   };
 
   const saveService = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newServiceName || !newServicePrice) return;
+    if (!validateForm()) return;
 
     const payload = {
       name: newServiceName,
@@ -197,19 +239,26 @@ export default function ServicesCustomizer() {
                 </button>
               </div>
 
-              <form onSubmit={saveService} className="space-y-4">
+              <form onSubmit={saveService} noValidate className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Treatment Name
                   </label>
                   <input
                     type="text"
-                    required
+                    id="name"
                     placeholder="e.g. Royal Shaving"
                     value={newServiceName}
-                    onChange={(e) => setNewServiceName(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewServiceName, "name", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.name ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.name && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -218,12 +267,19 @@ export default function ServicesCustomizer() {
                   </label>
                   <input
                     type="number"
-                    required
+                    id="price"
                     placeholder="e.g. 500"
                     value={newServicePrice}
-                    onChange={(e) => setNewServicePrice(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewServicePrice, "price", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.price ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.price && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.price}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid gap-4 grid-cols-2">
@@ -233,7 +289,7 @@ export default function ServicesCustomizer() {
                     </label>
                     <select
                       value={newServiceCategory}
-                      onChange={(e) => setNewServiceCategory(e.target.value)}
+                      onChange={(e) => handleFieldChange(setNewServiceCategory, "category", e.target.value)}
                       className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 cursor-pointer"
                     >
                       <option value="Grooming">Grooming</option>
@@ -249,7 +305,7 @@ export default function ServicesCustomizer() {
                     </label>
                     <select
                       value={newServiceDuration}
-                      onChange={(e) => setNewServiceDuration(e.target.value)}
+                      onChange={(e) => handleFieldChange(setNewServiceDuration, "duration", e.target.value)}
                       className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 cursor-pointer"
                     >
                       <option value="15 min">15 min</option>

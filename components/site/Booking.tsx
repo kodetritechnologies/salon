@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, CheckCircle2 } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
+import { io, Socket } from "socket.io-client";
+
+let socket: Socket | null = null;
+if (typeof window !== "undefined") {
+  socket = io();
+}
 
 const slots = ["09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30", "20:00"];
 
@@ -246,6 +252,10 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
       const resData = await response.json();
       if (resData && resData.success) {
         setSubmitted(true);
+        // Emit socket event for real-time notification
+        if (socket && resData.booking) {
+          socket.emit("new-booking", resData.booking);
+        }
         // Reset form data
         setFormDataVal({
           name: "",

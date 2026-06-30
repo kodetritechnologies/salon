@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -9,9 +9,13 @@ import {
   X,
   XCircle,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
+import { useSearchParams } from "next/navigation";
+import { io } from "socket.io-client";
 
 interface Booking {
   _id: string;
@@ -26,11 +30,167 @@ interface Booking {
   price: number;
 }
 
-export default function BookingsManager() {
+function BookingsContent() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [newBookingId, setNewBookingId] = useState<string | null>(null);
+
+  const soundEnabledRef = useRef(soundEnabled);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  const getAudioContext = () => {
+    if (typeof window === "undefined") return null;
+    if (!audioCtxRef.current) {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtxClass) {
+        audioCtxRef.current = new AudioCtxClass();
+      }
+    }
+    return audioCtxRef.current;
+  };
+
+  // Pre-unlock/Warm-up AudioContext on user interaction
+  useEffect(() => {
+    const unlockAudio = async () => {
+      try {
+        // Unlock Web Audio API context
+        const ctx = getAudioContext();
+        if (ctx && ctx.state === "suspended") {
+          await ctx.resume();
+        }
+        
+        // Unlock standard HTML5 Audio by playing a silent dummy file
+        const audio = new Audio("/notification.wav");
+        audio.volume = 0; // silent
+        await audio.play();
+        console.log("Audio elements successfully unlocked on user interaction");
+        cleanup();
+      } catch (err) {
+        console.log("Audio context unlock pending user interaction:", err);
+      }
+    };
+
+    const cleanup = () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+
+    return cleanup;
+  }, []);
+
+  const playNotificationSound = () => {
+    console.log("playNotificationSound invoked. soundEnabled:", soundEnabledRef.current);
+    if (!soundEnabledRef.current) return;
+    try {
+      console.log("Attempting to play physical WAV file /notification.wav...");
+      const audio = new Audio("/notification.wav");
+      audio.volume = 1.0; // full volume
+      audio.play()
+        .then(() => {
+          console.log("HTML5 Audio /notification.wav played successfully!");
+        })
+        .catch((err) => {
+          console.warn("HTML5 Audio play blocked or failed, falling back to Web Audio API synth:", err);
+          // 2. Fallback to Web Audio API synthesis
+          playSynthFallback();
+        });
+    } catch (error) {
+      console.warn("HTML5 Audio creation failed, falling back to Web Audio API synth:", error);
+      playSynthFallback();
+    }
+  };
+
+  const playSynthFallback = async () => {
+    try {
+      console.log("Attempting to play synth fallback...");
+      const ctx = getAudioContext();
+      if (!ctx) {
+        console.warn("AudioContext not supported by this browser");
+        return;
+      }
+
+      if (ctx.state === "suspended") {
+        console.log("AudioContext is suspended, attempting to resume...");
+        await ctx.resume();
+        console.log("AudioContext state after resume attempt:", ctx.state);
+      }
+
+      const now = ctx.currentTime;
+
+      // Chime 1 (D5)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, now); 
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.linearRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      // Chime 2 (A5, scheduled precisely 120ms later)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.12);
+      gain2.gain.setValueAtTime(0.08, now + 0.12);
+      gain2.gain.linearRampToValueAtTime(0.001, now + 0.12 + 0.45);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.12 + 0.45);
+      console.log("Synth chime play scheduled successfully!");
+    } catch (error) {
+      console.error("Web Audio API synth fallback failed:", error);
+    }
+  };
+
+  // Socket.io connection for real-time live booking feeds
+  useEffect(() => {
+    const socket = io();
+
+    socket.on("connect", () => {
+      console.log("Admin connected to Socket.io server");
+    });
+
+    socket.on("booking-added", (newBooking: Booking) => {
+      console.log("Live booking received from socket:", newBooking);
+      
+      // Prepend the new booking to list
+      setBookings((prev) => {
+        if (prev.some((b) => b._id === newBooking._id)) {
+          return prev;
+        }
+        return [newBooking, ...prev];
+      });
+
+      // Visual highlight
+      setNewBookingId(newBooking._id);
+      setTimeout(() => {
+        setNewBookingId(null);
+      }, 8000); // Glow for 8 seconds
+
+      // Play alert chime
+      playNotificationSound();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   // Add Booking form states
   const [showAddBookingModal, setShowAddBookingModal] = useState(false);
@@ -43,6 +203,7 @@ export default function BookingsManager() {
 
   const [servicesList, setServicesList] = useState<{ _id: string; name: string; price: number }[]>([]);
   const [barbersList, setBarbersList] = useState<{ _id: string; name: string }[]>([]);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { getMethod, postMethod, patchMethod, deleteMethod } = BasicProvider();
 
@@ -112,6 +273,15 @@ export default function BookingsManager() {
     fetchBookingsData();
   }, []);
 
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const status = searchParams.get("status");
+    if (status) {
+      setStatusFilter(status);
+    }
+  }, [searchParams]);
+
   const handleUpdateStatus = async (id: string, newStatus: Booking["status"]) => {
     try {
       const data = await patchMethod(`/api/bookings/${id}`, { status: newStatus });
@@ -125,9 +295,76 @@ export default function BookingsManager() {
     }
   };
 
+  const openAddModal = () => {
+    if (servicesList.length > 0) setNewBookingService(servicesList[0]._id);
+    if (barbersList.length > 0) setNewBookingBarber(barbersList[0]._id);
+    setNewBookingName("");
+    setNewBookingPhone("");
+    setNewBookingDate("");
+    setNewBookingTime("09:30");
+    setErrors({});
+    setShowAddBookingModal(true);
+  };
+
+  const handleFieldChange = (setter: (val: any) => void, fieldKey: string, value: any) => {
+    setter(value);
+    if (errors[fieldKey]) {
+      setErrors((prev) => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!newBookingName.trim()) {
+      newErrors.name = "Client Name is required.";
+    } else if (newBookingName.trim().length < 3) {
+      newErrors.name = "Name must be at least 3 characters long.";
+    }
+
+    if (!newBookingPhone.trim()) {
+      newErrors.phone = "Phone Number is required.";
+    } else {
+      const cleanPhone = newBookingPhone.replace(/[\s\-\+]/g, "");
+      if (!/^\d+$/.test(cleanPhone)) {
+        newErrors.phone = "Phone Number must contain only numeric digits.";
+      } else if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        newErrors.phone = "Phone Number must be between 10 and 15 digits.";
+      }
+    }
+
+    if (!newBookingService) {
+      newErrors.service = "Please select a service.";
+    }
+
+    if (!newBookingDate) {
+      newErrors.date = "Booking Date is required.";
+    } else {
+      const todayStr = new Date().toISOString().split("T")[0];
+      if (newBookingDate < todayStr) {
+        newErrors.date = "You cannot select a past date.";
+      }
+    }
+
+    setErrors(newErrors);
+
+    // Autofocus on first error
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorKey);
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   const addBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBookingName || !newBookingPhone || !newBookingDate) return;
+    if (!validateForm()) return;
     const selectedS = servicesList.find((s) => s._id === newBookingService);
     
     try {
@@ -148,6 +385,7 @@ export default function BookingsManager() {
         setNewBookingName("");
         setNewBookingPhone("");
         setNewBookingDate("");
+        setErrors({});
         setShowAddBookingModal(false);
       } else {
         alert(data.message || "Failed to create booking.");
@@ -203,13 +441,37 @@ export default function BookingsManager() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddBookingModal(true)}
-          className="inline-flex items-center gap-2 bg-gradient-gold px-4 py-2.5 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.02] transition-transform cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Direct Booking</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+              soundEnabled
+                ? "bg-gold/10 text-gold border-gold/30 hover:bg-gold/20"
+                : "bg-destructive/10 text-destructive-foreground border-destructive/30 hover:bg-destructive/20"
+            }`}
+            title={soundEnabled ? "Mute alert sounds" : "Unmute alert sounds"}
+          >
+            {soundEnabled ? (
+              <>
+                <Volume2 className="h-4 w-4" strokeWidth={2} />
+                <span>Sounds On</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="h-4 w-4" strokeWidth={2} />
+                <span>Sounds Muted</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 bg-gradient-gold px-4 py-2.5 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.02] transition-transform cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Direct Booking</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters Row */}
@@ -274,8 +536,16 @@ export default function BookingsManager() {
                   const barberName = getBarberName(b.barber);
                   const barberRole = getBarberRole(b.barber);
 
+                  const isNew = b._id === newBookingId;
                   return (
-                    <tr key={b._id} className="hover:bg-foreground/5 transition-colors">
+                    <tr
+                      key={b._id}
+                      className={`transition-all duration-1000 ${
+                        isNew
+                          ? "bg-gold/15 border-y border-gold/40 shadow-[inset_0_0_15px_rgba(212,175,55,0.15)] hover:bg-gold/20 animate-pulse font-medium"
+                          : "hover:bg-foreground/5 transition-colors"
+                      }`}
+                    >
                       <td className="p-4 pl-6 font-bold text-gold tracking-wide">
                         {b._id.slice(-6).toUpperCase()}
                       </td>
@@ -397,19 +667,26 @@ export default function BookingsManager() {
                 </button>
               </div>
 
-              <form onSubmit={addBooking} className="space-y-4">
+              <form onSubmit={addBooking} noValidate className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Client Name
                   </label>
                   <input
                     type="text"
-                    required
+                    id="name"
                     placeholder="e.g. Jayesh Rawat"
                     value={newBookingName}
-                    onChange={(e) => setNewBookingName(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewBookingName, "name", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.name ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.name && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -418,12 +695,19 @@ export default function BookingsManager() {
                   </label>
                   <input
                     type="tel"
-                    required
+                    id="phone"
                     placeholder="e.g. +91 90000 11111"
                     value={newBookingPhone}
-                    onChange={(e) => setNewBookingPhone(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setNewBookingPhone, "phone", e.target.value)}
+                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.phone ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
+                  {errors.phone && (
+                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                      {errors.phone}
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid gap-4 grid-cols-2">
@@ -432,9 +716,12 @@ export default function BookingsManager() {
                       Select Service
                     </label>
                     <select
+                      id="service"
                       value={newBookingService}
-                      onChange={(e) => setNewBookingService(e.target.value)}
-                      className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 cursor-pointer"
+                      onChange={(e) => handleFieldChange(setNewBookingService, "service", e.target.value)}
+                      className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none cursor-pointer transition-colors ${
+                        errors.service ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                      }`}
                     >
                       {servicesList.length === 0 && (
                         <option value="">No services available</option>
@@ -445,6 +732,11 @@ export default function BookingsManager() {
                         </option>
                       ))}
                     </select>
+                    {errors.service && (
+                      <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                        {errors.service}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
@@ -474,11 +766,19 @@ export default function BookingsManager() {
                     </label>
                     <input
                       type="date"
-                      required
+                      id="date"
+                      min={new Date().toISOString().split("T")[0]}
                       value={newBookingDate}
-                      onChange={(e) => setNewBookingDate(e.target.value)}
-                      className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50 cursor-pointer"
+                      onChange={(e) => handleFieldChange(setNewBookingDate, "date", e.target.value)}
+                      className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none cursor-pointer transition-colors ${
+                        errors.date ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                      }`}
                     />
+                    {errors.date && (
+                      <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                        {errors.date}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
@@ -513,5 +813,19 @@ export default function BookingsManager() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function BookingsManager() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center py-20 text-foreground">
+        <p className="text-sm font-semibold tracking-widest text-gold uppercase animate-pulse">
+          Loading bookings manager...
+        </p>
+      </div>
+    }>
+      <BookingsContent />
+    </Suspense>
   );
 }

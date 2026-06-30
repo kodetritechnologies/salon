@@ -25,6 +25,7 @@ export default function SettingsManager() {
   const [bannerText, setBannerText] = useState("");
   const [showBanner, setShowBanner] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const { getMethod, postMethod } = BasicProvider();
 
@@ -81,12 +82,110 @@ export default function SettingsManager() {
     }
   };
 
+  const handleFieldChange = (setter: (val: string) => void, fieldKey: string, value: string) => {
+    setter(value);
+    if (errors[fieldKey]) {
+      setErrors((prev) => ({ ...prev, [fieldKey]: "" }));
+    }
+  };
+
+  const validateContact = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    // shopPhone validation
+    if (!shopPhone.trim()) {
+      newErrors.shopPhone = "Hotline Number is required.";
+    } else {
+      const cleanPhone = shopPhone.replace(/[\s\-\+]/g, "");
+      if (!/^\d+$/.test(cleanPhone)) {
+        newErrors.shopPhone = "Hotline Number must contain only numeric digits.";
+      } else if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        newErrors.shopPhone = "Hotline Number must be between 10 and 15 digits.";
+      }
+    }
+
+    // whatsappNumber validation
+    if (whatsappNumber.trim()) {
+      const cleanWA = whatsappNumber.replace(/[\s\-\+]/g, "");
+      if (!/^\d+$/.test(cleanWA)) {
+        newErrors.whatsappNumber = "WhatsApp Number must contain only numeric digits.";
+      } else if (cleanWA.length < 10 || cleanWA.length > 15) {
+        newErrors.whatsappNumber = "WhatsApp Number must be between 10 and 15 digits.";
+      }
+    }
+
+    // shopEmail validation
+    if (!shopEmail.trim()) {
+      newErrors.shopEmail = "Email address is required.";
+    } else {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(shopEmail)) {
+        newErrors.shopEmail = "Please enter a valid email address.";
+      }
+    }
+
+    // shopAddress validation
+    if (!shopAddress.trim()) {
+      newErrors.shopAddress = "Physical Address is required.";
+    } else if (shopAddress.trim().length < 5) {
+      newErrors.shopAddress = "Address must be at least 5 characters.";
+    }
+
+    // openTime validation
+    if (!openTime.trim()) {
+      newErrors.openTime = "Opening Hour is required.";
+    }
+
+    // closeTime validation
+    if (!closeTime.trim()) {
+      newErrors.closeTime = "Closing Hour is required.";
+    }
+
+    setErrors(newErrors);
+
+    // Autofocus on first error
+    const firstErrorKey = Object.keys(newErrors)[0];
+    if (firstErrorKey) {
+      setTimeout(() => {
+        const element = document.getElementById(firstErrorKey);
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateBanner = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (showBanner && !bannerText.trim()) {
+      newErrors.bannerText = "Banner text is required when banner is active.";
+    }
+
+    setErrors(newErrors);
+
+    if (newErrors.bannerText) {
+      setTimeout(() => {
+        const element = document.getElementById("bannerText");
+        if (element) {
+          element.focus();
+        }
+      }, 0);
+    }
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveContact = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateContact()) return;
     saveAllSettings({});
   };
 
   const handleSaveBanner = () => {
+    if (!validateBanner()) return;
     saveAllSettings({});
   };
 
@@ -113,7 +212,7 @@ export default function SettingsManager() {
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Shop Details Config */}
-        <form onSubmit={handleSaveContact} className="glass p-6 sm:p-8 rounded-3xl shadow-elegant space-y-6">
+        <form onSubmit={handleSaveContact} noValidate className="glass p-6 sm:p-8 rounded-3xl shadow-elegant space-y-6">
           <h3 className="font-display text-lg font-bold text-foreground border-b border-gold/15 pb-2.5">
             Operational Details
           </h3>
@@ -131,11 +230,19 @@ export default function SettingsManager() {
                   </span>
                   <input
                     type="text"
+                    id="shopPhone"
                     value={shopPhone}
-                    onChange={(e) => setShopPhone(e.target.value)}
-                    className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setShopPhone, "shopPhone", e.target.value)}
+                    className={`w-full bg-background border pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.shopPhone ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
                 </div>
+                {errors.shopPhone && (
+                  <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                    {errors.shopPhone}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -148,11 +255,19 @@ export default function SettingsManager() {
                   </span>
                   <input
                     type="text"
+                    id="whatsappNumber"
                     value={whatsappNumber}
-                    onChange={(e) => setWhatsappNumber(e.target.value)}
-                    className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                    onChange={(e) => handleFieldChange(setWhatsappNumber, "whatsappNumber", e.target.value)}
+                    className={`w-full bg-background border pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                      errors.whatsappNumber ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                    }`}
                   />
                 </div>
+                {errors.whatsappNumber && (
+                  <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                    {errors.whatsappNumber}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -167,11 +282,19 @@ export default function SettingsManager() {
                 </span>
                 <input
                   type="text"
+                  id="shopEmail"
                   value={shopEmail}
-                  onChange={(e) => setShopEmail(e.target.value)}
-                  className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                  onChange={(e) => handleFieldChange(setShopEmail, "shopEmail", e.target.value)}
+                  className={`w-full bg-background border pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                    errors.shopEmail ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                  }`}
                 />
               </div>
+              {errors.shopEmail && (
+                <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                  {errors.shopEmail}
+                </span>
+              )}
             </div>
 
             {/* Address */}
@@ -185,11 +308,19 @@ export default function SettingsManager() {
                 </span>
                 <input
                   type="text"
+                  id="shopAddress"
                   value={shopAddress}
-                  onChange={(e) => setShopAddress(e.target.value)}
-                  className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                  onChange={(e) => handleFieldChange(setShopAddress, "shopAddress", e.target.value)}
+                  className={`w-full bg-background border pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                    errors.shopAddress ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                  }`}
                 />
               </div>
+              {errors.shopAddress && (
+                <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                  {errors.shopAddress}
+                </span>
+              )}
             </div>
 
             {/* Social Details */}
@@ -204,8 +335,9 @@ export default function SettingsManager() {
                   </span>
                   <input
                     type="text"
+                    id="instagramUsername"
                     value={instagramUsername}
-                    onChange={(e) => setInstagramUsername(e.target.value)}
+                    onChange={(e) => handleFieldChange(setInstagramUsername, "instagramUsername", e.target.value)}
                     className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
                   />
                 </div>
@@ -221,8 +353,9 @@ export default function SettingsManager() {
                   </span>
                   <input
                     type="text"
+                    id="facebookUsername"
                     value={facebookUsername}
-                    onChange={(e) => setFacebookUsername(e.target.value)}
+                    onChange={(e) => handleFieldChange(setFacebookUsername, "facebookUsername", e.target.value)}
                     className="w-full bg-background border border-gold/20 pl-10 pr-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
                   />
                 </div>
@@ -237,10 +370,18 @@ export default function SettingsManager() {
                 </label>
                 <input
                   type="text"
+                  id="openTime"
                   value={openTime}
-                  onChange={(e) => setOpenTime(e.target.value)}
-                  className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                  onChange={(e) => handleFieldChange(setOpenTime, "openTime", e.target.value)}
+                  className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                    errors.openTime ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                  }`}
                 />
+                {errors.openTime && (
+                  <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                    {errors.openTime}
+                  </span>
+                )}
               </div>
               <div>
                 <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-gold">
@@ -248,14 +389,22 @@ export default function SettingsManager() {
                 </label>
                 <input
                   type="text"
+                  id="closeTime"
                   value={closeTime}
-                  onChange={(e) => setCloseTime(e.target.value)}
-                  className="w-full bg-background border border-gold/20 px-4 py-2.5 rounded-full text-xs text-foreground outline-none focus:border-gold/50"
+                  onChange={(e) => handleFieldChange(setCloseTime, "closeTime", e.target.value)}
+                  className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                    errors.closeTime ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                  }`}
                 />
+                {errors.closeTime && (
+                  <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                    {errors.closeTime}
+                  </span>
+                )}
               </div>
             </div>
           </div>
-          
+
           <button
             type="submit"
             className="w-full text-center bg-gradient-gold py-3.5 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.01] transition-transform cursor-pointer"
@@ -299,10 +448,18 @@ export default function SettingsManager() {
               </label>
               <textarea
                 rows={3}
+                id="bannerText"
                 value={bannerText}
-                onChange={(e) => setBannerText(e.target.value)}
-                className="w-full bg-background border border-gold/20 p-4 rounded-2xl text-xs text-foreground outline-none focus:border-gold/50 placeholder:text-muted-foreground/50 font-sans"
+                onChange={(e) => handleFieldChange(setBannerText, "bannerText", e.target.value)}
+                className={`w-full bg-background border p-4 rounded-2xl text-xs text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 font-sans ${
+                  errors.bannerText ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                }`}
               />
+              {errors.bannerText && (
+                <span className="mt-1.5 block text-[10px] text-red-400 font-medium pl-2">
+                  {errors.bannerText}
+                </span>
+              )}
             </div>
           </div>
 

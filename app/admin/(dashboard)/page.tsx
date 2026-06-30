@@ -14,6 +14,7 @@ import {
   X
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
+import { showSuccess, showError } from "@/utils/helpers/alertHelper";
 
 interface Booking {
   _id: string;
@@ -90,10 +91,13 @@ export default function AdminOverview() {
     try {
       const data = await patchMethod(`/api/bookings/${id}`, { status: newStatus });
       if (data && data.success) {
+        showSuccess("Updated", `Booking has been marked as ${newStatus}.`);
         fetchOverviewData();
+      } else {
+        showError("Failed", data.message || "Failed to update status.");
       }
-    } catch (error) {
-      console.error("Failed to update status:", error);
+    } catch (error: any) {
+      showError("Error", error.message || "Failed to update status.");
     }
   };
 
@@ -192,14 +196,18 @@ export default function AdminOverview() {
       {/* Metrics Cards */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Bookings", value: bookings.length, icon: CalendarDays, change: "All bookings logged" },
-          { label: "Estimated Revenue", value: `₹${totalRevenue}`, icon: DollarSign, change: "Gross earnings" },
-          { label: "Pending Approvals", value: pendingBookings, icon: Clock, change: "Requires action" },
-          { label: "Active Stylists", value: activeStylistsCount, icon: UserCheck, change: "On salon floor" }
+          { label: "Total Bookings", value: bookings.length, icon: CalendarDays, change: "All bookings logged", path: "/admin/bookings" },
+          { label: "Estimated Revenue", value: `₹${totalRevenue}`, icon: DollarSign, change: "Gross earnings", path: "/admin/bookings" },
+          { label: "Pending Approvals", value: pendingBookings, icon: Clock, change: "Requires action", path: "/admin/bookings?status=Pending" },
+          { label: "Active Stylists", value: activeStylistsCount, icon: UserCheck, change: "On salon floor", path: "/admin/staff" }
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="glass p-5 rounded-2xl shadow-soft hover:border-gold/45 transition-colors">
+            <div
+              key={i}
+              onClick={() => router.push(stat.path)}
+              className="glass p-5 rounded-2xl shadow-soft hover:border-gold/45 transition-all hover:scale-[1.01] cursor-pointer"
+            >
               <div className="flex justify-between items-start">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   {stat.label}
