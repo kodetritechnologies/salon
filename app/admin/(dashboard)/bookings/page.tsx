@@ -158,37 +158,94 @@ function BookingsContent() {
     }
   };
 
-  // Socket.io connection for real-time live booking feeds
+  // Socket.io connection and polling fallback for real-time live booking updates
   useEffect(() => {
-    const socket = io();
+    let socket: any = null;
+    let pollingInterval: NodeJS.Timeout | null = null;
 
-    socket.on("connect", () => {
-      console.log("Admin connected to Socket.io server");
-    });
+    const startPolling = () => {
+      if (pollingInterval) return;
+      console.log("Starting real-time polling fallback...");
+      pollingInterval = setInterval(async () => {
+        try {
+          const bookingsResponse = await getMethod("/api/bookings");
+          if (bookingsResponse && bookingsResponse.success) {
+            const incoming: Booking[] = bookingsResponse.bookings;
+            
+            // Compare incoming bookings with state list to find new bookings
+            setBookings((prevBookings) => {
+              const newItems = incoming.filter(
+                (inc) => !prevBookings.some((prev) => prev._id === inc._id)
+              );
 
-    socket.on("booking-added", (newBooking: Booking) => {
-      console.log("Live booking received from socket:", newBooking);
-      
-      // Prepend the new booking to list
-      setBookings((prev) => {
-        if (prev.some((b) => b._id === newBooking._id)) {
-          return prev;
+              if (newItems.length > 0) {
+                // Flash and chime for the newest incoming item
+                const newest = newItems[0];
+                console.log("Polling fallback detected new booking:", newest);
+                setNewBookingId(newest._id);
+                setTimeout(() => {
+                  setNewBookingId(null);
+                }, 8000); // Glow for 8 seconds
+                playNotificationSound();
+              }
+              return incoming;
+            });
+          }
+        } catch (error) {
+          console.error("Polling fallback error:", error);
         }
-        return [newBooking, ...prev];
-      });
+      }, 5000); // Poll every 5 seconds
+    };
 
-      // Visual highlight
-      setNewBookingId(newBooking._id);
-      setTimeout(() => {
-        setNewBookingId(null);
-      }, 8000); // Glow for 8 seconds
+    // Skip sockets and start polling immediately if deployed on Vercel
+    const isVercel = typeof window !== "undefined" && window.location.hostname.includes("vercel.app");
 
-      // Play alert chime
-      playNotificationSound();
-    });
+    if (isVercel) {
+      console.log("Running in Vercel serverless environment. Initializing polling mode.");
+      startPolling();
+    } else {
+      try {
+        socket = io();
+
+        socket.on("connect", () => {
+          console.log("Admin connected to Socket.io server via WebSocket");
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+        });
+
+        socket.on("booking-added", (newBooking: Booking) => {
+          console.log("Live booking received from socket:", newBooking);
+          
+          setBookings((prev) => {
+            if (prev.some((b) => b._id === newBooking._id)) {
+              return prev;
+            }
+            return [newBooking, ...prev];
+          });
+
+          setNewBookingId(newBooking._id);
+          setTimeout(() => {
+            setNewBookingId(null);
+          }, 8000);
+
+          playNotificationSound();
+        });
+
+        socket.on("connect_error", (err: any) => {
+          console.warn("Socket connection error, falling back to polling:", err);
+          startPolling();
+        });
+      } catch (err) {
+        console.warn("Failed to initialize socket, falling back to polling:", err);
+        startPolling();
+      }
+    }
 
     return () => {
-      socket.disconnect();
+      if (socket) socket.disconnect();
+      if (pollingInterval) clearInterval(pollingInterval);
     };
   }, []);
 
