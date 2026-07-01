@@ -107,6 +107,22 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
   }, []);
 
   useEffect(() => {
+    const handleSelectService = (e: Event) => {
+      const customEvent = e as CustomEvent<{ serviceId: string }>;
+      if (customEvent.detail && customEvent.detail.serviceId) {
+        setFormDataVal((prev) => ({
+          ...prev,
+          service: customEvent.detail.serviceId,
+        }));
+      }
+    };
+    window.addEventListener("select-service", handleSelectService);
+    return () => {
+      window.removeEventListener("select-service", handleSelectService);
+    };
+  }, []);
+
+  useEffect(() => {
     const today = getTodayDateString();
     const firstAvailableTime = slots.find((s) => !isSlotInPast(today, s)) || slots[0];
 

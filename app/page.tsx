@@ -19,11 +19,12 @@ export default async function Home() {
   let dbSettings: any = null;
   let dbStaff: any[] = [];
   let dbTestimonials: any[] = [];
+  let dbGallery: any[] = [];
   
   try {
     const provider = await serviceProvider();
     
-    const servicesResponse = await provider.getMethod("api/services");
+    const servicesResponse = await provider.getMethod("api/services?featured=false");
     if (servicesResponse && servicesResponse.success) {
       dbServices = servicesResponse.services;
     }
@@ -47,6 +48,11 @@ export default async function Home() {
     if (testimonialsResponse && testimonialsResponse.success) {
       dbTestimonials = testimonialsResponse.testimonials;
     }
+
+    const galleryResponse = await provider.getMethod("api/gallery");
+    if (galleryResponse && galleryResponse.success) {
+      dbGallery = galleryResponse.gallery;
+    }
   } catch (error) {
     console.warn("Could not fetch database records via service provider during server rendering:", error);
   }
@@ -59,7 +65,7 @@ export default async function Home() {
         <Services initialServices={dbServices} />
         <WhyChoose />
         <Stats />
-        <Gallery />
+        <Gallery initialImages={dbGallery} />
         <Pricing initialServices={dbFeaturedServices} />
         <Booking services={dbServices} staff={dbStaff} />
         <Team initialStaff={dbStaff} />

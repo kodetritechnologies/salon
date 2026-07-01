@@ -27,7 +27,6 @@ export function Team({ initialStaff = [] }: { initialStaff?: any[] }) {
             </div>
           ) : (
             initialStaff.map((m, i) => {
-              const avatarUrl = avatars[m.avatarIndex % avatars.length] || avatars[0];
               const isAvailable = m.status === "Available";
               const isOnBreak = m.status === "On Break";
 
@@ -42,13 +41,26 @@ export function Team({ initialStaff = [] }: { initialStaff?: any[] }) {
                     }`}
                 >
                   <div className="relative aspect-[3/4] overflow-hidden">
-                    <img
-                      src={avatarUrl}
-                      alt={m.name}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent" />
+                    {m.imageUrl ? (
+                      <img
+                        src={m.imageUrl}
+                        alt={m.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-ink/40 flex flex-col items-center justify-center border border-gold/10 p-5 text-center transition-all duration-700 group-hover:scale-105">
+                        <div className="h-20 w-20 rounded-full bg-gold/10 border-2 border-gold/30 flex items-center justify-center font-display text-3xl font-bold text-gold shadow-gold mb-3">
+                          {m.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()}
+                        </div>
+                        <span className="text-xs uppercase tracking-widest text-gold font-semibold">{m.name}</span>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent pointer-events-none" />
 
                     <div className="absolute top-4 right-4 z-10">
                       <span
@@ -66,11 +78,11 @@ export function Team({ initialStaff = [] }: { initialStaff?: any[] }) {
                     <div className="absolute inset-x-0 bottom-0 p-5">
                       <div className="flex items-center gap-1 text-gold">
                         <Star className="h-3.5 w-3.5 fill-current" />
-                        <span className="text-xs font-semibold text-foreground">{m.rating}</span>
-                        <span className="text-xs text-muted-foreground">· {m.experience}</span>
+                        <span className="text-xs font-semibold text-white">{m.rating}</span>
+                        <span className="text-xs text-white/70">· {m.experience}</span>
                       </div>
-                      <h3 className="mt-1 font-display text-xl font-semibold text-foreground">{m.name}</h3>
-                      <p className="text-xs text-muted-foreground">{m.role}</p>
+                      <h3 className="mt-1 font-display text-xl font-semibold text-white">{m.name}</h3>
+                      <p className="text-xs text-white/70">{m.role}</p>
                     </div>
                   </div>
                   <div className="p-4">

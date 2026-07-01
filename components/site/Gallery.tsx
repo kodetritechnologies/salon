@@ -2,23 +2,17 @@
 
 import { motion } from "framer-motion";
 import { SectionHeading } from "./SectionHeading";
-import g1 from "@/assets/gallery-1.jpg";
-import g2 from "@/assets/gallery-2.jpg";
-import g3 from "@/assets/gallery-3.jpg";
-import g4 from "@/assets/gallery-4.jpg";
-import g5 from "@/assets/gallery-5.jpg";
-import g6 from "@/assets/gallery-6.jpg";
+export function Gallery({ initialImages = [] }: { initialImages?: any[] }) {
+  if (!initialImages || initialImages.length === 0) {
+    return null;
+  }
 
-const items = [
-  { src: g1.src, span: "row-span-2", alt: "Modern Indian salon interior with gold LED mirrors" },
-  { src: g2.src, span: "", alt: "Customer with fresh haircut and styled beard" },
-  { src: g3.src, span: "", alt: "Premium barber tools — scissors and razor" },
-  { src: g4.src, span: "row-span-2", alt: "Hot-towel shave in luxury barber chair" },
-  { src: g5.src, span: "", alt: "Relaxing head massage with oil" },
-  { src: g6.src, span: "", alt: "Wide view of premium Indian salon" },
-];
+  const galleryItems = initialImages.map((item) => ({
+    src: item.imageUrl,
+    span: item.span || "",
+    alt: item.alt,
+  }));
 
-export function Gallery() {
   return (
     <section id="gallery" className="relative py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -29,7 +23,7 @@ export function Gallery() {
         />
 
         <div className="mt-16 grid auto-rows-[180px] grid-cols-2 gap-4 sm:auto-rows-[220px] md:grid-cols-3 lg:grid-cols-4">
-          {items.map((it, i) => (
+          {galleryItems.map((it, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, scale: 0.95 }}
@@ -47,7 +41,7 @@ export function Gallery() {
               <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               <div className="absolute inset-x-0 bottom-0 translate-y-4 p-4 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100">
                 <p className="text-xs uppercase tracking-[0.25em] text-gold">Royal Gents</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{it.alt}</p>
+                <p className="mt-1 text-sm font-medium text-white">{it.alt}</p>
               </div>
             </motion.div>
           ))}

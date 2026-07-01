@@ -26,7 +26,7 @@ export function Hero({ settings, services = [] }: HeroProps) {
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-[image:var(--gradient-hero)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/90 via-ink/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/65 to-transparent" />
       </div>
 
       <div className="mx-auto grid max-w-7xl gap-12 px-4 pb-24 pt-12 sm:px-6 md:pt-20 lg:grid-cols-12 lg:pt-24">
@@ -75,7 +75,7 @@ export function Hero({ settings, services = [] }: HeroProps) {
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="h-10 w-10 rounded-full border-2 border-ink bg-gradient-to-br from-gold to-bronze"
+                  className="h-10 w-10 rounded-full border-2 border-background bg-gradient-to-br from-gold to-bronze"
                 />
               ))}
             </div>

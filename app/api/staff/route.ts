@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, role, status, rating, experience, avatarIndex } = await req.json();
+    const { name, role, status, rating, experience, avatarIndex, imageUrl } = await req.json();
 
     if (!name || !role) {
       return NextResponse.json(
@@ -45,6 +45,7 @@ export async function POST(req: Request) {
       rating: rating !== undefined ? Number(rating) : 5.0,
       experience: experience || "5 years",
       avatarIndex: avatarIndex !== undefined ? Number(avatarIndex) : 0,
+      imageUrl: imageUrl || "",
     });
 
     return NextResponse.json(

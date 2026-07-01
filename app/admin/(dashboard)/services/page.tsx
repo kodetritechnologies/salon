@@ -7,7 +7,9 @@ import {
   Clock,
   Trash2,
   Edit2,
-  X
+  X,
+  Upload,
+  Loader2
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
 import toast from "react-hot-toast";
@@ -21,6 +23,7 @@ interface Service {
   category: string;
   features?: string[];
   featured?: boolean;
+  imageUrl?: string;
 }
 
 export default function ServicesCustomizer() {
@@ -36,6 +39,9 @@ export default function ServicesCustomizer() {
   const [newServiceCategory, setNewServiceCategory] = useState("Grooming");
   const [newServiceFeatures, setNewServiceFeatures] = useState("");
   const [newServiceFeatured, setNewServiceFeatured] = useState(false);
+  const [newServiceImagePreview, setNewServiceImagePreview] = useState("");
+  const [newServiceExistingImageUrl, setNewServiceExistingImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const fetchServices = async () => {
@@ -57,6 +63,9 @@ export default function ServicesCustomizer() {
     setNewServiceCategory("Grooming");
     setNewServiceFeatures("");
     setNewServiceFeatured(false);
+    setNewServiceImagePreview("");
+    setNewServiceExistingImageUrl("");
+    setUploadingImage(false);
     setErrors({});
     setShowAddServiceModal(true);
   };
@@ -69,8 +78,22 @@ export default function ServicesCustomizer() {
     setNewServiceCategory(s.category);
     setNewServiceFeatures(s.features ? s.features.join(", ") : "");
     setNewServiceFeatured(!!s.featured);
+    setNewServiceImagePreview("");
+    setNewServiceExistingImageUrl(s.imageUrl || "");
+    setUploadingImage(false);
     setErrors({});
     setShowAddServiceModal(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewServiceImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleFieldChange = (setter: (val: any) => void, fieldKey: string, value: any) => {
@@ -116,21 +139,40 @@ export default function ServicesCustomizer() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const parsedFeatures = newServiceFeatures
-      .split(",")
-      .map((f) => f.trim())
-      .filter((f) => f.length > 0);
-
-    const payload = {
-      name: newServiceName,
-      price: parseFloat(newServicePrice),
-      duration: newServiceDuration,
-      category: newServiceCategory,
-      features: parsedFeatures,
-      featured: newServiceFeatured,
-    };
-
+    setUploadingImage(true);
     try {
+      let finalImageUrl = newServiceExistingImageUrl;
+
+      if (newServiceImagePreview) {
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ file: newServiceImagePreview }),
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) {
+          throw new Error(uploadData.message || "Failed to upload image.");
+        }
+        finalImageUrl = uploadData.url;
+      }
+
+      const parsedFeatures = newServiceFeatures
+        .split(",")
+        .map((f) => f.trim())
+        .filter((f) => f.length > 0);
+
+      const payload = {
+        name: newServiceName,
+        price: parseFloat(newServicePrice),
+        duration: newServiceDuration,
+        category: newServiceCategory,
+        features: parsedFeatures,
+        featured: newServiceFeatured,
+        imageUrl: finalImageUrl,
+      };
+
       if (editingId) {
         const data = await patchMethod(`/api/services/${editingId}`, payload);
         if (data && data.success) {
@@ -157,6 +199,8 @@ export default function ServicesCustomizer() {
       }
     } catch (error: any) {
       toast.error(error.message || "Something went wrong.");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -213,6 +257,11 @@ export default function ServicesCustomizer() {
             }`}
           >
             <div className="space-y-3">
+              {s.imageUrl && (
+                <div className="relative h-32 rounded-xl overflow-hidden mb-3 border border-gold/15 shadow-soft">
+                  <img src={s.imageUrl} alt={s.name} className="h-full w-full object-cover" />
+                </div>
+              )}
               <div className="flex justify-between items-start">
                 <div className="flex gap-2">
                   <span className="px-2.5 py-1 bg-gold/15 text-gold border border-gold/25 rounded-md text-[9px] font-bold uppercase tracking-wider">
@@ -283,21 +332,23 @@ export default function ServicesCustomizer() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-card border border-gold/25 p-6 rounded-3xl shadow-elegant z-10"
+              className="relative w-full max-w-lg bg-card border border-gold/25 p-6 rounded-3xl shadow-elegant z-10"
             >
               <div className="flex justify-between items-center border-b border-gold/15 pb-3.5 mb-5">
                 <h3 className="font-display text-lg font-bold text-foreground">
                   {editingId ? "Edit Treatment" : "Add New Treatment"}
                 </h3>
                 <button
+                  disabled={uploadingImage}
                   onClick={() => setShowAddServiceModal(false)}
-                  className="p-1 rounded-full border border-gold/25 text-gold hover:bg-gold/10"
+                  className="p-1 rounded-full border border-gold/25 text-gold hover:bg-gold/10 disabled:opacity-50"
                 >
                   <X className="h-4.5 w-4.5" />
                 </button>
               </div>
 
               <form onSubmit={saveService} noValidate className="space-y-4">
+                {/* Treatment Name (Full Width) */}
                 <div>
                   <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Treatment Name
@@ -319,28 +370,8 @@ export default function ServicesCustomizer() {
                   )}
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
-                    Cost Price (INR)
-                  </label>
-                  <input
-                    type="number"
-                    id="price"
-                    placeholder="e.g. 500"
-                    value={newServicePrice}
-                    onChange={(e) => handleFieldChange(setNewServicePrice, "price", e.target.value)}
-                    className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
-                      errors.price ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
-                    }`}
-                  />
-                  {errors.price && (
-                    <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
-                      {errors.price}
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid gap-4 grid-cols-2">
+                {/* 3-Column Grid for Category, Duration, and Price */}
+                <div className="grid gap-4 grid-cols-3">
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                       Category
@@ -357,6 +388,7 @@ export default function ServicesCustomizer() {
                       <option value="Therapy">Therapy</option>
                     </select>
                   </div>
+
                   <div>
                     <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                       Duration
@@ -374,10 +406,32 @@ export default function ServicesCustomizer() {
                       <option value="90 min">90 min</option>
                     </select>
                   </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
+                      Cost (INR)
+                    </label>
+                    <input
+                      type="number"
+                      id="price"
+                      placeholder="e.g. 500"
+                      value={newServicePrice}
+                      onChange={(e) => handleFieldChange(setNewServicePrice, "price", e.target.value)}
+                      className={`w-full bg-background border px-4 py-2.5 rounded-full text-xs text-foreground outline-none transition-colors ${
+                        errors.price ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/50"
+                      }`}
+                    />
+                    {errors.price && (
+                      <span className="mt-1 block text-[10px] text-red-400 font-medium pl-2">
+                        {errors.price}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gold">
+                {/* Treatment Features (Full Width) */}
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
                     Treatment Features (Comma Separated)
                   </label>
                   <textarea
@@ -385,31 +439,79 @@ export default function ServicesCustomizer() {
                     placeholder="e.g. Precision haircut, Wash & dry, Styling"
                     value={newServiceFeatures}
                     onChange={(e) => setNewServiceFeatures(e.target.value)}
-                    className="w-full bg-background border border-gold/20 px-4 py-2 rounded-2xl text-xs text-foreground outline-none focus:border-gold/50"
+                    className="w-full bg-background border border-gold/20 px-4 py-2 rounded-2xl text-xs text-foreground outline-none focus:border-gold/50 resize-none animate-none"
                   />
-                  <span className="block text-[9px] text-muted-foreground pl-1">
-                    Separate features with a comma (e.g. Feature 1, Feature 2)
-                  </span>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <input
-                    type="checkbox"
-                    id="featured"
-                    checked={newServiceFeatured}
-                    onChange={(e) => setNewServiceFeatured(e.target.checked)}
-                    className="h-4 w-4 rounded border-gold/30 text-gold focus:ring-gold bg-background accent-gold cursor-pointer"
-                  />
-                  <label htmlFor="featured" className="text-xs font-semibold text-foreground cursor-pointer select-none">
-                    Show in Pricing (Featured)
+                {/* Service Image (Full Width Dropzone style) */}
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-gold">
+                    Service Image (Optional)
                   </label>
+                  <div className="relative border border-dashed border-gold/20 hover:border-gold/50 rounded-2xl overflow-hidden h-16 flex items-center justify-center bg-background/50 cursor-pointer">
+                    {newServiceImagePreview || newServiceExistingImageUrl ? (
+                      <div className="flex items-center justify-between w-full h-full px-4 bg-background/40">
+                        <div className="flex items-center gap-3">
+                          <img src={newServiceImagePreview || newServiceExistingImageUrl} alt="Service preview" className="w-10 h-10 rounded-lg object-cover border border-gold/20" />
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">Selected Image</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewServiceImagePreview("");
+                            if (!newServiceImagePreview) {
+                              setNewServiceExistingImageUrl("");
+                            }
+                          }}
+                          className="p-1 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-full h-full flex items-center justify-center gap-2 cursor-pointer text-center">
+                        <Upload className="h-4 w-4 text-gold/60" />
+                        <span className="text-[10px] text-muted-foreground">Select Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
+                {/* Featured Checkbox and Submit Button */}
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="featured"
+                      checked={newServiceFeatured}
+                      onChange={(e) => setNewServiceFeatured(e.target.checked)}
+                      className="h-4 w-4 rounded border-gold/30 text-gold focus:ring-gold bg-background accent-gold cursor-pointer"
+                    />
+                    <label htmlFor="featured" className="text-xs font-semibold text-foreground cursor-pointer select-none">
+                      Featured (Show in Pricing)
+                    </label>
+                  </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="mt-6 w-full text-center bg-gradient-gold py-3 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.01] transition-transform cursor-pointer"
+                  disabled={uploadingImage}
+                  className="mt-6 w-full flex items-center justify-center gap-2 bg-gradient-gold py-3 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.01] transition-transform cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingId ? "Save Changes" : "Add Service"}
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Saving Treatment...</span>
+                    </>
+                  ) : (
+                    <span>{editingId ? "Save Changes" : "Add Service"}</span>
+                  )}
                 </button>
               </form>
             </motion.div>

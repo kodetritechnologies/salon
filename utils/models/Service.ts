@@ -28,6 +28,10 @@ const ServiceSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    imageUrl: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

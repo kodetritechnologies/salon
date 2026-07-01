@@ -1,15 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ImageOff } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
-import haircut from "@/assets/service-haircut.jpg";
-import beard from "@/assets/service-beard.jpg";
-import spa from "@/assets/service-spa.jpg";
-import facial from "@/assets/service-facial.jpg";
-import color from "@/assets/service-color.jpg";
-import massage from "@/assets/service-massage.jpg";
-import kids from "@/assets/service-kids.jpg";
 
 interface DBService {
   _id?: string;
@@ -17,20 +10,17 @@ interface DBService {
   price: number;
   duration: string;
   category: string;
+  imageUrl?: string;
+  featured?: boolean;
 }
 
 export function Services({ initialServices = [] }: { initialServices?: DBService[] }) {
   const finalServices = initialServices.map(s => ({
+    id: s._id,
     name: s.name,
     price: `₹${s.price}`,
     desc: `${s.category} treatment - duration ${s.duration}`,
-    img: s.name.toLowerCase().includes("cut") ? haircut.src 
-       : s.name.toLowerCase().includes("beard") ? beard.src
-       : s.name.toLowerCase().includes("spa") ? spa.src
-       : s.name.toLowerCase().includes("facial") ? facial.src
-       : s.name.toLowerCase().includes("color") ? color.src
-       : s.name.toLowerCase().includes("massage") ? massage.src
-       : kids.src
+    img: s.imageUrl || null
   }));
 
   return (
@@ -58,14 +48,21 @@ export function Services({ initialServices = [] }: { initialServices?: DBService
                 className="group glass overflow-hidden rounded-3xl shadow-soft transition-all duration-500 hover:-translate-y-1 hover:shadow-gold"
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={s.img}
-                    alt={s.name}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent" />
-                  <span className="absolute right-3 top-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-bold text-ink shadow-gold">
+                  {s.img ? (
+                    <img
+                      src={s.img}
+                      alt={s.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-ink/40 flex flex-col items-center justify-center border border-gold/10 p-5 text-center transition-all duration-700 group-hover:scale-105">
+                      <ImageOff className="h-8 w-8 text-gold/60 mb-2" />
+                      <span className="text-xs uppercase tracking-widest text-gold font-semibold">No Image</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/10 to-transparent pointer-events-none" />
+                  <span className="absolute right-3 top-3 rounded-full bg-gradient-gold px-3 py-1 text-xs font-bold text-ink shadow-gold z-10">
                     from {s.price}
                   </span>
                 </div>
@@ -74,6 +71,13 @@ export function Services({ initialServices = [] }: { initialServices?: DBService
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
                   <a
                     href="#booking"
+                    onClick={() => {
+                      if (s.id) {
+                        window.dispatchEvent(
+                          new CustomEvent("select-service", { detail: { serviceId: s.id } })
+                        );
+                      }
+                    }}
                     className="mt-4 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-gold transition-colors hover:text-gold-bright"
                   >
                     Book Now <ChevronRight className="h-3 w-3" />

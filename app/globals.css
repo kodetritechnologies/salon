@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -48,7 +48,7 @@
 
 :root {
   --radius: 1rem;
-  /* Royal Gents Salon — luxurious black / gold / dark brown / cream */
+  /* Luxurious Dark Theme — near-black with warm tint, gold, dark brown, cream */
   --background: oklch(0.13 0.012 60);
   /* near-black with warm tint */
   --foreground: oklch(0.97 0.012 85);
@@ -107,39 +107,63 @@
   --font-sans: var(--font-sans-custom), system-ui, sans-serif;
 }
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+.light {
+  /* Luxurious Light Theme — cream / warm beige / gold / dark charcoal */
+  --background: oklch(0.98 0.006 70);
+  /* warm soft linen/cream */
+  --foreground: oklch(0.16 0.012 60);
+  /* dark charcoal with warm tint */
+  --card: oklch(0.95 0.01 70);
+  /* slightly darker cream for cards */
+  --card-foreground: oklch(0.16 0.012 60);
+  --popover: oklch(0.97 0.01 70);
+  --popover-foreground: oklch(0.16 0.012 60);
+  --primary: oklch(0.65 0.13 75);
+  /* deep refined gold, legible on light background */
+  --primary-foreground: oklch(0.98 0.006 70);
+  --secondary: oklch(0.91 0.018 70);
+  /* soft gold/champagne background tint */
+  --secondary-foreground: oklch(0.16 0.012 60);
+  --muted: oklch(0.91 0.01 70);
+  --muted-foreground: oklch(0.48 0.012 60);
+  --accent: oklch(0.7 0.14 75);
+  --accent-foreground: oklch(0.16 0.012 60);
+  --destructive: oklch(0.55 0.18 25);
+  --destructive-foreground: oklch(0.98 0.006 70);
+  --border: oklch(0.65 0.13 75 / 0.25);
+  /* subtle gold border */
+  --input: oklch(0.16 0.012 60 / 0.08);
+  --ring: oklch(0.65 0.13 75);
+  --chart-1: oklch(0.65 0.13 75);
+  --chart-2: oklch(0.7 0.14 75);
+  --chart-3: oklch(0.5 0.08 60);
+  --chart-4: oklch(0.35 0.04 55);
+  --chart-5: oklch(0.6 0.12 80);
+  --sidebar: oklch(0.95 0.01 70);
+  --sidebar-foreground: oklch(0.16 0.012 60);
+  --sidebar-primary: oklch(0.65 0.13 75);
+  --sidebar-primary-foreground: oklch(0.98 0.006 70);
+  --sidebar-accent: oklch(0.91 0.018 70);
+  --sidebar-accent-foreground: oklch(0.16 0.012 60);
+  --sidebar-border: oklch(0.65 0.13 75 / 0.25);
+  --sidebar-ring: oklch(0.65 0.13 75);
+
+  /* Brand-specific tokens */
+  --gold: oklch(0.72 0.13 75);
+  /* slightly darker gold for light mode readability */
+  --gold-bright: oklch(0.8 0.14 80);
+  --gold-deep: oklch(0.55 0.12 70);
+  --bronze: oklch(0.55 0.11 60);
+  --brown-deep: oklch(0.22 0.02 50);
+  --ink: oklch(0.1 0.008 60);
+
+  --gradient-gold: linear-gradient(135deg, oklch(0.8 0.14 80) 0%, oklch(0.68 0.13 75) 50%, oklch(0.55 0.11 60) 100%);
+  --gradient-dark: linear-gradient(180deg, oklch(0.98 0.006 70) 0%, oklch(0.93 0.01 70) 100%);
+  --gradient-hero: linear-gradient(180deg, oklch(0.98 0.006 70 / 0.6) 0%, oklch(0.93 0.01 70 / 0.95) 100%);
+
+  --shadow-gold: 0 15px 35px -15px oklch(0.65 0.13 75 / 0.3);
+  --shadow-elegant: 0 20px 50px -20px oklch(0 0 0 / 0.12);
+  --shadow-soft: 0 8px 30px -10px oklch(0 0 0 / 0.06);
 }
 
 @layer base {

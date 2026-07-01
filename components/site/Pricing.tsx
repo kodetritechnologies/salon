@@ -40,6 +40,7 @@ export function Pricing({ initialServices = [] }: { initialServices?: DBService[
 
   const plans = servicesList.map((s) => {
     return {
+      id: s._id,
       name: s.name,
       price: s.price,
       features: s.features || []
@@ -83,6 +84,13 @@ export function Pricing({ initialServices = [] }: { initialServices?: DBService[
                 </ul>
                 <a
                   href="#booking"
+                  onClick={() => {
+                    if (p.id) {
+                      window.dispatchEvent(
+                        new CustomEvent("select-service", { detail: { serviceId: p.id } })
+                      );
+                    }
+                  }}
                   className="mt-8 inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:scale-[1.03] border border-gold/40 bg-foreground/5 text-foreground hover:border-gold hover:bg-gold/10"
                 >
                   Book This

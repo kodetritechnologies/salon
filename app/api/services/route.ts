@@ -12,6 +12,8 @@ export async function GET(req: Request) {
     const filter: any = {};
     if (featured === "true") {
       filter.featured = true;
+    } else if (featured === "false") {
+      filter.featured = { $ne: true };
     }
 
     const services = await Service.find(filter).sort({ createdAt: -1 });
@@ -37,7 +39,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { name, price, duration, category, features, featured } = await req.json();
+    const { name, price, duration, category, features, featured, imageUrl } = await req.json();
 
     if (!name || !price || !duration) {
       return NextResponse.json(
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
       category: category || "Grooming",
       features: Array.isArray(features) ? features : [],
       featured: !!featured,
+      imageUrl: imageUrl || "",
     });
 
     return NextResponse.json(
