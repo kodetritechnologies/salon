@@ -10,6 +10,8 @@ import {
   X
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
+import toast from "react-hot-toast";
+import { confirmAction } from "@/utils/helpers/alertHelper";
 
 interface Service {
   _id: string;
@@ -17,6 +19,8 @@ interface Service {
   price: number;
   duration: string;
   category: string;
+  features?: string[];
+  featured?: boolean;
 }
 
 export default function ServicesCustomizer() {
@@ -30,6 +34,8 @@ export default function ServicesCustomizer() {
   const [newServicePrice, setNewServicePrice] = useState("");
   const [newServiceDuration, setNewServiceDuration] = useState("30 min");
   const [newServiceCategory, setNewServiceCategory] = useState("Grooming");
+  const [newServiceFeatures, setNewServiceFeatures] = useState("");
+  const [newServiceFeatured, setNewServiceFeatured] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const fetchServices = async () => {
@@ -49,6 +55,8 @@ export default function ServicesCustomizer() {
     setNewServicePrice("");
     setNewServiceDuration("30 min");
     setNewServiceCategory("Grooming");
+    setNewServiceFeatures("");
+    setNewServiceFeatured(false);
     setErrors({});
     setShowAddServiceModal(true);
   };
@@ -59,6 +67,8 @@ export default function ServicesCustomizer() {
     setNewServicePrice(s.price.toString());
     setNewServiceDuration(s.duration);
     setNewServiceCategory(s.category);
+    setNewServiceFeatures(s.features ? s.features.join(", ") : "");
+    setNewServiceFeatured(!!s.featured);
     setErrors({});
     setShowAddServiceModal(true);
   };
@@ -106,42 +116,68 @@ export default function ServicesCustomizer() {
     e.preventDefault();
     if (!validateForm()) return;
 
+    const parsedFeatures = newServiceFeatures
+      .split(",")
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
     const payload = {
       name: newServiceName,
       price: parseFloat(newServicePrice),
       duration: newServiceDuration,
-      category: newServiceCategory
+      category: newServiceCategory,
+      features: parsedFeatures,
+      featured: newServiceFeatured,
     };
 
-    if (editingId) {
-      const data = await patchMethod(`/api/services/${editingId}`, payload);
-      if (data && data.success) {
-        fetchServices();
-        setNewServiceName("");
-        setNewServicePrice("");
-        setEditingId(null);
-        setShowAddServiceModal(false);
+    try {
+      if (editingId) {
+        const data = await patchMethod(`/api/services/${editingId}`, payload);
+        if (data && data.success) {
+          toast.success("Service updated successfully.");
+          fetchServices();
+          setNewServiceName("");
+          setNewServicePrice("");
+          setEditingId(null);
+          setShowAddServiceModal(false);
+        } else {
+          toast.error(data.message || "Failed to update service.");
+        }
       } else {
-        alert(data.message || "Failed to update service.");
+        const data = await postMethod("/api/services", payload);
+        if (data && data.success) {
+          toast.success("Service created successfully.");
+          fetchServices();
+          setNewServiceName("");
+          setNewServicePrice("");
+          setShowAddServiceModal(false);
+        } else {
+          toast.error(data.message || "Failed to create service.");
+        }
       }
-    } else {
-      const data = await postMethod("/api/services", payload);
-      if (data && data.success) {
-        fetchServices();
-        setNewServiceName("");
-        setNewServicePrice("");
-        setShowAddServiceModal(false);
-      } else {
-        alert(data.message || "Failed to create service.");
-      }
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong.");
     }
   };
 
   const deleteService = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this service?")) return;
-    const data = await deleteMethod(`/api/services/${id}`);
-    if (data && data.success) {
-      fetchServices();
+    const confirmed = await confirmAction(
+      "Are you sure?",
+      "You want to permanently delete this service?",
+      "Delete"
+    );
+    if (!confirmed) return;
+
+    try {
+      const data = await deleteMethod(`/api/services/${id}`);
+      if (data && data.success) {
+        toast.success("Service deleted successfully.");
+        fetchServices();
+      } else {
+        toast.error(data.message || "Failed to delete service.");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong.");
     }
   };
 
@@ -172,13 +208,22 @@ export default function ServicesCustomizer() {
         {services.map((s) => (
           <div
             key={s._id}
-            className="glass p-5 rounded-2xl flex flex-col justify-between hover:border-gold/45 transition-all shadow-soft animate-fade-in"
+            className={`glass p-5 rounded-2xl flex flex-col justify-between hover:border-gold/45 transition-all shadow-soft animate-fade-in ${
+              s.featured ? "ring-1 ring-gold/40 border-gold/40" : ""
+            }`}
           >
             <div className="space-y-3">
               <div className="flex justify-between items-start">
-                <span className="px-2.5 py-1 bg-gold/15 text-gold border border-gold/25 rounded-md text-[9px] font-bold uppercase tracking-wider">
-                  {s.category}
-                </span>
+                <div className="flex gap-2">
+                  <span className="px-2.5 py-1 bg-gold/15 text-gold border border-gold/25 rounded-md text-[9px] font-bold uppercase tracking-wider">
+                    {s.category}
+                  </span>
+                  {s.featured && (
+                    <span className="px-2 py-0.5 bg-gradient-gold text-ink rounded-md text-[8px] font-bold uppercase tracking-wider shadow-gold">
+                      Featured
+                    </span>
+                  )}
+                </div>
                 <button
                   onClick={() => deleteService(s._id)}
                   className="p-1 text-muted-foreground hover:text-destructive-foreground transition-colors cursor-pointer"
@@ -194,6 +239,19 @@ export default function ServicesCustomizer() {
                   <Clock className="h-3.5 w-3.5" />
                   <span>{s.duration}</span>
                 </div>
+                {s.features && s.features.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-gold">Features:</p>
+                    <ul className="text-[10px] text-muted-foreground list-disc list-inside space-y-0.5">
+                      {s.features.slice(0, 3).map((feat, i) => (
+                        <li key={i} className="truncate">{feat}</li>
+                      ))}
+                      {s.features.length > 3 && (
+                        <li className="list-none text-gold font-semibold">+{s.features.length - 3} more...</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -316,6 +374,35 @@ export default function ServicesCustomizer() {
                       <option value="90 min">90 min</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gold">
+                    Treatment Features (Comma Separated)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Precision haircut, Wash & dry, Styling"
+                    value={newServiceFeatures}
+                    onChange={(e) => setNewServiceFeatures(e.target.value)}
+                    className="w-full bg-background border border-gold/20 px-4 py-2 rounded-2xl text-xs text-foreground outline-none focus:border-gold/50"
+                  />
+                  <span className="block text-[9px] text-muted-foreground pl-1">
+                    Separate features with a comma (e.g. Feature 1, Feature 2)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <input
+                    type="checkbox"
+                    id="featured"
+                    checked={newServiceFeatured}
+                    onChange={(e) => setNewServiceFeatured(e.target.checked)}
+                    className="h-4 w-4 rounded border-gold/30 text-gold focus:ring-gold bg-background accent-gold cursor-pointer"
+                  />
+                  <label htmlFor="featured" className="text-xs font-semibold text-foreground cursor-pointer select-none">
+                    Show in Pricing (Featured)
+                  </label>
                 </div>
 
                 <button

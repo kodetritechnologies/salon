@@ -11,7 +11,7 @@ import {
   Facebook
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
-import { showSuccess, showError } from "@/utils/helpers/alertHelper";
+import toast from "react-hot-toast";
 
 export default function SettingsManager() {
   const [shopPhone, setShopPhone] = useState("");
@@ -73,12 +73,12 @@ export default function SettingsManager() {
 
       const data = await postMethod("/api/settings", payload);
       if (data && data.success) {
-        showSuccess("Success", data.message || "Settings updated successfully.");
+        toast.success("Settings updated successfully.");
       } else {
-        showError("Failed", data.message || "Could not update settings.");
+        toast.error(data.message || "Could not update settings.");
       }
     } catch (error: any) {
-      showError("Error", error.message || "An error occurred.");
+      toast.error(error.message || "An error occurred.");
     }
   };
 

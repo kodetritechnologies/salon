@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/utils/lib/dbConnect";
 import Staff from "@/utils/models/Staff";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 export async function PATCH(
   req: Request,
@@ -8,6 +9,14 @@ export async function PATCH(
 ) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await req.json();
 
@@ -42,6 +51,14 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const deletedStaff = await Staff.findByIdAndDelete(id);

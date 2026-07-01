@@ -3,10 +3,24 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/utils/lib/dbConnect";
 import Admin from "@/utils/models/Admin";
 import { generateToken } from "@/utils/lib/jwt";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 export async function POST(req: Request) {
   try {
     await dbConnect();
+
+    // Require authentication if at least one admin already exists (bootstrapping restriction)
+    const adminCount = await Admin.countDocuments({});
+    if (adminCount > 0) {
+      const requester = await verifyAdmin(req);
+      if (!requester) {
+        return NextResponse.json(
+          { success: false, message: "Unauthorized. Admin registration is restricted." },
+          { status: 401 }
+        );
+      }
+    }
+
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {
@@ -16,7 +30,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if admin already exists
     const existingAdmin = await Admin.findOne({ email });
     if (existingAdmin) {
       return NextResponse.json(
@@ -25,19 +38,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create admin
     const newAdmin = await Admin.create({
       name,
       email,
       password: hashedPassword,
     });
 
-    // Generate JWT token
     const token = generateToken({ id: newAdmin._id, email: newAdmin.email });
+
 
     return NextResponse.json(
       {

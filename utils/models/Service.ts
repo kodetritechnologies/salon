@@ -20,6 +20,14 @@ const ServiceSchema = new Schema(
       required: [true, "Category is required"],
       default: "Grooming",
     },
+    features: {
+      type: [String],
+      default: [],
+    },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Plus, X, Pencil, Trash2, Star, MessageSquare } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import BasicProvider from "@/utils/BasicProvider";
+import toast from "react-hot-toast";
+import { confirmAction } from "@/utils/helpers/alertHelper";
 
 interface Testimonial {
   _id: string;
@@ -119,36 +121,46 @@ export default function AdminTestimonials() {
       if (editingId) {
         const data = await patchMethod(`/api/testimonials/${editingId}`, payload);
         if (data && data.success) {
+          toast.success(data.message || "Testimonial updated successfully.");
           fetchTestimonials();
           setShowModal(false);
         } else {
-          alert(data.message || "Failed to update review.");
+          toast.error(data.message || "Failed to update review.");
         }
       } else {
         const data = await postMethod("/api/testimonials", payload);
         if (data && data.success) {
+          toast.success(data.message || "Testimonial added successfully.");
           fetchTestimonials();
           setShowModal(false);
         } else {
-          alert(data.message || "Failed to add review.");
+          toast.error(data.message || "Failed to add review.");
         }
       }
     } catch (err) {
+      toast.error("An error occurred while saving the testimonial.");
       console.error("Error saving testimonial:", err);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this testimonial?")) return;
+    const isConfirmed = await confirmAction(
+      "Are you sure?",
+      "You want to permanently delete this testimonial?",
+      "Yes, delete it"
+    );
+    if (!isConfirmed) return;
 
     try {
       const data = await deleteMethod(`/api/testimonials/${id}`);
       if (data && data.success) {
+        toast.success(data.message || "Testimonial deleted successfully.");
         fetchTestimonials();
       } else {
-        alert(data.message || "Failed to delete testimonial.");
+        toast.error(data.message || "Failed to delete testimonial.");
       }
     } catch (err) {
+      toast.error("An error occurred while deleting the testimonial.");
       console.error("Error deleting testimonial:", err);
     }
   };

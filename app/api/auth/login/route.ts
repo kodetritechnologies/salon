@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/utils/lib/dbConnect";
 import Admin from "@/utils/models/Admin";
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
 
     // Generate JWT token
     const token = generateToken({ id: admin._id, email: admin.email });
+
+    // Set cookie on server side
+    const cookieStore = await cookies();
+    cookieStore.set("adminToken", token, {
+      path: "/",
+      maxAge: 60 * 60 * 24, // 1 day
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: false,
+    });
 
     return NextResponse.json(
       {

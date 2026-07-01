@@ -15,6 +15,7 @@ import { serviceProvider } from "@/utils/serviceProvider";
 
 export default async function Home() {
   let dbServices: any[] = [];
+  let dbFeaturedServices: any[] = [];
   let dbSettings: any = null;
   let dbStaff: any[] = [];
   let dbTestimonials: any[] = [];
@@ -25,6 +26,11 @@ export default async function Home() {
     const servicesResponse = await provider.getMethod("api/services");
     if (servicesResponse && servicesResponse.success) {
       dbServices = servicesResponse.services;
+    }
+
+    const featuredServicesResponse = await provider.getMethod("api/services?featured=true");
+    if (featuredServicesResponse && featuredServicesResponse.success) {
+      dbFeaturedServices = featuredServicesResponse.services;
     }
 
     const settingsResponse = await provider.getMethod("api/settings");
@@ -54,7 +60,7 @@ export default async function Home() {
         <WhyChoose />
         <Stats />
         <Gallery />
-        <Pricing />
+        <Pricing initialServices={dbFeaturedServices} />
         <Booking services={dbServices} staff={dbStaff} />
         <Team initialStaff={dbStaff} />
         <Testimonials initialTestimonials={dbTestimonials} />

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/utils/lib/dbConnect";
 import Staff from "@/utils/models/Staff";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 export async function GET() {
   try {
     await dbConnect();
-    const staff = await Staff.find({});
+    const staff = await Staff.find({}).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, staff }, { status: 200 });
   } catch (error: any) {
@@ -20,6 +21,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const { name, role, status, rating, experience, avatarIndex } = await req.json();
 
     if (!name || !role) {

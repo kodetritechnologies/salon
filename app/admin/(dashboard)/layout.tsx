@@ -33,7 +33,6 @@ export default function AdminDashboardLayout({
   const [showBanner, setShowBanner] = useState(false);
   const [bannerText, setBannerText] = useState("");
 
-  // Authenticate session on mount
   useEffect(() => {
     const checkAuth = async () => {
       const token = Cookies.get("adminToken");
@@ -58,7 +57,6 @@ export default function AdminDashboardLayout({
     checkAuth();
   }, [router]);
 
-  // Fetch settings dynamically for the banner
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -99,10 +97,8 @@ export default function AdminDashboardLayout({
 
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-background text-foreground flex flex-col lg:flex-row relative">
-      {/* Sidebar for Desktop */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col border-r border-gold/15 bg-card/65 backdrop-blur-md p-6 justify-between z-30">
         <div className="space-y-8">
-          {/* Logo */}
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-gold shadow-gold">
               <Scissors className="h-5 w-5 text-ink" strokeWidth={2.5} />
@@ -117,7 +113,6 @@ export default function AdminDashboardLayout({
             </div>
           </div>
 
-          {/* User profile */}
           <div className="glass p-4 rounded-2xl flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gold/25 border border-gold/40 flex items-center justify-center font-bold text-gold shrink-0">
               {adminUser?.name[0] || "A"}
@@ -128,22 +123,20 @@ export default function AdminDashboardLayout({
             </div>
           </div>
 
-          {/* Navigation Links */}
           <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = item.exact 
-                ? pathname === item.href 
+              const isActive = item.exact
+                ? pathname === item.href
                 : pathname.startsWith(item.href) && pathname !== "/admin/login";
               return (
                 <button
                   key={item.href}
                   onClick={() => router.push(item.href)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-semibold transition-all ${
-                    isActive
-                      ? "bg-gradient-gold text-ink shadow-gold"
-                      : "text-muted-foreground hover:text-gold hover:bg-gold/10"
-                  }`}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-semibold transition-all ${isActive
+                    ? "bg-gradient-gold text-ink shadow-gold"
+                    : "text-muted-foreground hover:text-gold hover:bg-gold/10"
+                    }`}
                 >
                   <Icon className="h-4.5 w-4.5 shrink-0" />
                   <span>{item.label}</span>
@@ -153,7 +146,6 @@ export default function AdminDashboardLayout({
           </nav>
         </div>
 
-        {/* Logout */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 rounded-full text-sm font-semibold text-destructive-foreground hover:bg-destructive/10 transition-colors"
@@ -163,7 +155,6 @@ export default function AdminDashboardLayout({
         </button>
       </aside>
 
-      {/* Mobile Top Navbar */}
       <header className="lg:hidden flex items-center justify-between border-b border-gold/15 bg-card/70 backdrop-blur-md px-6 py-4 z-40">
         <div className="flex items-center gap-3">
           <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-gold shadow-gold">
@@ -183,7 +174,6 @@ export default function AdminDashboardLayout({
         </button>
       </header>
 
-      {/* Mobile Sidebar Overlay Drawer */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -225,8 +215,8 @@ export default function AdminDashboardLayout({
                 <nav className="space-y-1">
                   {navItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = item.exact 
-                      ? pathname === item.href 
+                    const isActive = item.exact
+                      ? pathname === item.href
                       : pathname.startsWith(item.href) && pathname !== "/admin/login";
                     return (
                       <button
@@ -235,11 +225,10 @@ export default function AdminDashboardLayout({
                           router.push(item.href);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-semibold transition-all ${
-                          isActive
-                            ? "bg-gradient-gold text-ink shadow-gold"
-                            : "text-muted-foreground hover:text-gold hover:bg-gold/10"
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-semibold transition-all ${isActive
+                          ? "bg-gradient-gold text-ink shadow-gold"
+                          : "text-muted-foreground hover:text-gold hover:bg-gold/10"
+                          }`}
                       >
                         <Icon className="h-4.5 w-4.5" />
                         <span>{item.label}</span>
@@ -261,9 +250,7 @@ export default function AdminDashboardLayout({
         )}
       </AnimatePresence>
 
-      {/* Main Panel Content Area */}
       <main className="flex-1 p-6 lg:p-10 overflow-y-auto max-w-7xl mx-auto w-full flex flex-col gap-8">
-        {/* Banner Notification */}
         {showBanner && bannerText && (
           <div className="relative overflow-hidden rounded-2xl bg-gradient-gold p-4 text-ink font-semibold flex items-center justify-between shadow-gold shrink-0">
             <div className="flex items-center gap-2 pr-8">
@@ -281,7 +268,6 @@ export default function AdminDashboardLayout({
           </div>
         )}
 
-        {/* Child Router Content */}
         <div className="flex-1">
           {children}
         </div>

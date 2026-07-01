@@ -16,6 +16,8 @@ import {
 import BasicProvider from "@/utils/BasicProvider";
 import { useSearchParams } from "next/navigation";
 import { io } from "socket.io-client";
+import toast from "react-hot-toast";
+import { confirmAction } from "@/utils/helpers/alertHelper";
 
 interface Booking {
   _id: string;
@@ -343,11 +345,13 @@ function BookingsContent() {
     try {
       const data = await patchMethod(`/api/bookings/${id}`, { status: newStatus });
       if (data && data.success) {
+        toast.success(`Booking status updated to ${newStatus}.`);
         fetchBookingsData();
       } else {
-        alert(data.message || "Failed to update status.");
+        toast.error(data.message || "Failed to update status.");
       }
     } catch (error: any) {
+      toast.error(error.message || "Something went wrong.");
       console.error("Update status error:", error);
     }
   };
@@ -438,6 +442,7 @@ function BookingsContent() {
 
       const data = await postMethod("/api/bookings", payload);
       if (data && data.success) {
+        toast.success("Booking created successfully.");
         fetchBookingsData();
         setNewBookingName("");
         setNewBookingPhone("");
@@ -445,23 +450,32 @@ function BookingsContent() {
         setErrors({});
         setShowAddBookingModal(false);
       } else {
-        alert(data.message || "Failed to create booking.");
+        toast.error(data.message || "Failed to create booking.");
       }
     } catch (error: any) {
+      toast.error(error.message || "Something went wrong.");
       console.error("Add booking error:", error);
     }
   };
 
   const handleDeleteBooking = async (id: string) => {
-    if (!confirm("Are you sure you want to permanently delete this booking record?")) return;
+    const confirmed = await confirmAction(
+      "Are you sure?",
+      "You want to permanently delete this booking record?",
+      "Delete"
+    );
+    if (!confirmed) return;
+
     try {
       const data = await deleteMethod(`/api/bookings/${id}`);
       if (data && data.success) {
+        toast.success("Booking record deleted successfully.");
         fetchBookingsData();
       } else {
-        alert(data.message || "Failed to delete booking.");
+        toast.error(data.message || "Failed to delete booking.");
       }
     } catch (error: any) {
+      toast.error(error.message || "Something went wrong.");
       console.error("Delete booking error:", error);
     }
   };

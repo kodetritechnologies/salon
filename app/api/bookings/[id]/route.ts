@@ -4,6 +4,7 @@ import Booking from "@/utils/models/Booking";
 import Service from "@/utils/models/Service";
 import Staff from "@/utils/models/Staff";
 import mongoose from "mongoose";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 export async function PATCH(
   req: Request,
@@ -11,10 +12,17 @@ export async function PATCH(
 ) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
     const body = await req.json();
 
-    // If updating service
     if (body.service) {
       if (mongoose.Types.ObjectId.isValid(body.service)) {
         body.service = new mongoose.Types.ObjectId(body.service);
@@ -26,7 +34,6 @@ export async function PATCH(
       }
     }
 
-    // If updating barber
     if (body.barber) {
       if (mongoose.Types.ObjectId.isValid(body.barber)) {
         body.barber = new mongoose.Types.ObjectId(body.barber);
@@ -69,6 +76,14 @@ export async function DELETE(
 ) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const { id } = await params;
 
     const deletedBooking = await Booking.findByIdAndDelete(id);

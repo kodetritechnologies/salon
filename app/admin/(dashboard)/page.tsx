@@ -14,7 +14,7 @@ import {
   X
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
-import { showSuccess, showError } from "@/utils/helpers/alertHelper";
+import toast from "react-hot-toast";
 
 interface Booking {
   _id: string;
@@ -29,131 +29,59 @@ interface Booking {
   price: number;
 }
 
+interface DashboardStats {
+  totalBookingsCount: number;
+  totalRevenue: number;
+  pendingBookingsCount: number;
+  confirmedBookingsCount: number;
+  activeStylistsCount: number;
+  chartItems: { day: string; count: number; height: string }[];
+  popularServices: { name: string; count: number; percentage: number }[];
+  pendingBookings: Booking[];
+}
+
 export default function AdminOverview() {
   const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeStylistsCount, setActiveStylistsCount] = useState(0);
-  const [servicesList, setServicesList] = useState<{ _id: string; name: string }[]>([]);
-  const [barbersList, setBarbersList] = useState<{ _id: string; name: string }[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activeRange, setActiveRange] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const { getMethod, patchMethod } = BasicProvider();
 
-  const getServiceName = (serviceField: any) => {
-    if (!serviceField) return "Unknown Service";
-    if (typeof serviceField === "object" && serviceField.name) {
-      return serviceField.name;
-    }
-    const serviceId = typeof serviceField === "object" ? serviceField._id : serviceField;
-    const found = servicesList.find((s) => s._id === serviceId);
-    return found ? found.name : `Service (${serviceId})`;
-  };
-
-  const getBarberName = (barberField: any) => {
-    if (!barberField) return "No preference";
-    if (barberField === "No preference") return "No preference";
-    if (typeof barberField === "object" && barberField.name) {
-      return barberField.name;
-    }
-    const barberId = typeof barberField === "object" ? barberField._id : barberField;
-    const found = barbersList.find((b) => b._id === barberId);
-    return found ? found.name : `Barber (${barberId})`;
-  };
-
-  const fetchOverviewData = async () => {
+  const fetchOverviewData = async (rangeStr = activeRange) => {
+    setLoading(true);
     try {
-      const bookingsResponse = await getMethod("/api/bookings");
-      if (bookingsResponse && bookingsResponse.success) {
-        setBookings(bookingsResponse.bookings);
-      }
-      const servicesResponse = await getMethod("/api/services");
-      if (servicesResponse && servicesResponse.success) {
-        setServicesList(servicesResponse.services.map((s: any) => ({ _id: s._id, name: s.name })));
-      }
-      const staffResponse = await getMethod("/api/staff");
-      if (staffResponse && staffResponse.success) {
-        setBarbersList(staffResponse.staff.map((st: any) => ({ _id: st._id, name: st.name })));
-        const availableStylists = staffResponse.staff.filter((s: any) => s.status === "Available").length;
-        setActiveStylistsCount(availableStylists);
+      const data = await getMethod(`/api/dashboard/stats?range=${rangeStr}`);
+      if (data && data.success) {
+        setStats(data.stats);
+      } else {
+        toast.error(data?.message || "Failed to load dashboard metrics.");
       }
     } catch (error) {
       console.error("Failed to load overview data:", error);
+      toast.error("Failed to connect to the server.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOverviewData();
-  }, []);
+    fetchOverviewData(activeRange);
+  }, [activeRange]);
 
   const handleUpdateStatus = async (id: string, newStatus: Booking["status"]) => {
     try {
       const data = await patchMethod(`/api/bookings/${id}`, { status: newStatus });
       if (data && data.success) {
-        showSuccess("Updated", `Booking has been marked as ${newStatus}.`);
+        toast.success(`Booking has been marked as ${newStatus}.`);
         fetchOverviewData();
       } else {
-        showError("Failed", data.message || "Failed to update status.");
+        toast.error(data.message || "Failed to update status.");
       }
     } catch (error: any) {
-      showError("Error", error.message || "Failed to update status.");
+      toast.error(error.message || "Failed to update status.");
     }
   };
-
-  // Calculations
-  const totalRevenue = bookings
-    .filter((b) => b.status === "Completed" || b.status === "Confirmed")
-    .reduce((sum, b) => sum + b.price, 0);
-
-  const pendingBookings = bookings.filter((b) => b.status === "Pending").length;
-  const confirmedBookings = bookings.filter((b) => b.status === "Confirmed").length;
-
-  // Compute Weekly Chart Data
-  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const dayCounts = [0, 0, 0, 0, 0, 0, 0];
-
-  bookings.forEach((b) => {
-    if (b.date) {
-      try {
-        const d = new Date(b.date);
-        const dayIdx = d.getDay();
-        if (!isNaN(dayIdx)) {
-          dayCounts[dayIdx]++;
-        }
-      } catch (e) {
-        // Ignore invalid dates
-      }
-    }
-  });
-
-  const maxCount = Math.max(...dayCounts, 1);
-  const chartItems = [
-    { day: "Mon", count: dayCounts[1] },
-    { day: "Tue", count: dayCounts[2] },
-    { day: "Wed", count: dayCounts[3] },
-    { day: "Thu", count: dayCounts[4] },
-    { day: "Fri", count: dayCounts[5] },
-    { day: "Sat", count: dayCounts[6] },
-    { day: "Sun", count: dayCounts[0] }
-  ].map((item) => ({
-    ...item,
-    height: `${Math.round((item.count / maxCount) * 100)}%`
-  }));
-
-  // Compute Popular Services
-  const serviceCounts: Record<string, number> = {};
-  bookings.forEach((b) => {
-    const serviceName = getServiceName(b.service);
-    if (serviceName) {
-      serviceCounts[serviceName] = (serviceCounts[serviceName] || 0) + 1;
-    }
-  });
-
-  const sortedServices = Object.entries(serviceCounts)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 4);
 
   const popularServicesFallback = [
     { name: "Classic Haircut", percentage: 78, count: 42 },
@@ -162,16 +90,11 @@ export default function AdminOverview() {
     { name: "Herbal Head Spa", percentage: 22, count: 12 }
   ];
 
-  const maxServiceCount = sortedServices[0]?.count || 1;
-  const finalPopularServices = sortedServices.length > 0
-    ? sortedServices.map((s) => ({
-        name: s.name,
-        count: s.count,
-        percentage: Math.round((s.count / maxServiceCount) * 100)
-      }))
+  const finalPopularServices = stats && stats.popularServices && stats.popularServices.length > 0
+    ? stats.popularServices
     : popularServicesFallback;
 
-  if (loading) {
+  if (loading || !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-foreground">
         <p className="text-sm font-semibold tracking-widest text-gold uppercase animate-pulse">
@@ -183,23 +106,38 @@ export default function AdminOverview() {
 
   return (
     <div className="space-y-8">
-      {/* Header Title */}
-      <div>
-        <h2 className="font-display text-3xl font-extrabold text-gradient-gold leading-none">
-          Salon Overview
-        </h2>
-        <p className="text-xs text-muted-foreground uppercase tracking-widest mt-2">
-          Key performance metrics and live updates
-        </p>
+      {/* Header Title & Date Filter */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="font-display text-3xl font-extrabold text-gradient-gold leading-none">
+            Salon Overview
+          </h2>
+          <p className="text-xs text-muted-foreground uppercase tracking-widest mt-2">
+            Key performance metrics and live updates
+          </p>
+        </div>
+
+        <div>
+          <select
+            value={activeRange}
+            onChange={(e) => setActiveRange(e.target.value)}
+            className="bg-card border border-gold/30 hover:border-gold/60 text-foreground px-4 py-2.5 rounded-full text-xs font-semibold outline-none transition-all cursor-pointer"
+          >
+            <option value="all">All Time</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="year">This Year</option>
+          </select>
+        </div>
       </div>
 
       {/* Metrics Cards */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Bookings", value: bookings.length, icon: CalendarDays, change: "All bookings logged", path: "/admin/bookings" },
-          { label: "Estimated Revenue", value: `₹${totalRevenue}`, icon: DollarSign, change: "Gross earnings", path: "/admin/bookings" },
-          { label: "Pending Approvals", value: pendingBookings, icon: Clock, change: "Requires action", path: "/admin/bookings?status=Pending" },
-          { label: "Active Stylists", value: activeStylistsCount, icon: UserCheck, change: "On salon floor", path: "/admin/staff" }
+          { label: "Total Bookings", value: stats.totalBookingsCount, icon: CalendarDays, change: "All bookings logged", path: "/admin/bookings" },
+          { label: "Estimated Revenue", value: `₹${stats.totalRevenue}`, icon: DollarSign, change: "Gross earnings", path: "/admin/bookings" },
+          { label: "Pending Approvals", value: stats.pendingBookingsCount, icon: Clock, change: "Requires action", path: "/admin/bookings?status=Pending" },
+          { label: "Active Stylists", value: stats.activeStylistsCount, icon: UserCheck, change: "On salon floor", path: "/admin/staff" }
         ].map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -244,7 +182,7 @@ export default function AdminOverview() {
 
           {/* SVG Chart */}
           <div className="h-56 w-full flex items-end justify-between pt-6 border-b border-gold/15 px-2">
-            {chartItems.map((item, idx) => (
+            {stats.chartItems.map((item, idx) => (
               <div key={idx} className="flex flex-col items-center gap-2 group w-10 relative">
                 {/* Tooltip */}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-[-30px] bg-gold text-ink text-[10px] font-bold px-2 py-0.5 rounded shadow-elegant whitespace-nowrap z-10">
@@ -309,55 +247,53 @@ export default function AdminOverview() {
 
         {/* List of pending bookings */}
         <div className="divide-y divide-gold/10">
-          {bookings.filter((b) => b.status === "Pending").length === 0 ? (
+          {stats.pendingBookings.length === 0 ? (
             <p className="text-center py-6 text-sm text-muted-foreground">No pending confirmations!</p>
           ) : (
-            bookings
-              .filter((b) => b.status === "Pending")
-              .map((b) => {
-                const serviceName = getServiceName(b.service);
-                const barberName = getBarberName(b.barber);
+            stats.pendingBookings.map((b) => {
+              const serviceName = b.service && typeof b.service === "object" ? b.service.name : "Unknown Service";
+              const barberName = b.barber && typeof b.barber === "object" ? b.barber.name : "No preference";
 
-                return (
-                  <div key={b._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4.5 gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-bold text-gold">
-                        {b.name[0]}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{b.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {serviceName} with {barberName}
-                        </p>
-                      </div>
+              return (
+                <div key={b._id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4.5 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-bold text-gold">
+                      {b.name[0]}
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                      <div className="text-left sm:text-right">
-                        <p className="text-xs font-semibold text-foreground">
-                          {b.date} @ {b.time}
-                        </p>
-                        <p className="text-[10px] text-gold font-bold">₹{b.price}</p>
-                      </div>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => handleUpdateStatus(b._id, "Confirmed")}
-                          className="p-1.5 bg-gold/10 border border-gold/30 rounded-lg text-gold hover:bg-gold hover:text-ink transition-colors cursor-pointer"
-                          title="Approve Booking"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(b._id, "Cancelled")}
-                          className="p-1.5 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive-foreground hover:bg-destructive hover:text-white transition-colors cursor-pointer"
-                          title="Reject Booking"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{b.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {serviceName} with {barberName}
+                      </p>
                     </div>
                   </div>
-                );
-              })
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="text-left sm:text-right">
+                      <p className="text-xs font-semibold text-foreground">
+                        {b.date} @ {b.time}
+                      </p>
+                      <p className="text-[10px] text-gold font-bold">₹{b.price}</p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => handleUpdateStatus(b._id, "Confirmed")}
+                        className="p-1.5 bg-gold/10 border border-gold/30 rounded-lg text-gold hover:bg-gold hover:text-ink transition-colors cursor-pointer"
+                        title="Approve Booking"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus(b._id, "Cancelled")}
+                        className="p-1.5 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive-foreground hover:bg-destructive hover:text-white transition-colors cursor-pointer"
+                        title="Reject Booking"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

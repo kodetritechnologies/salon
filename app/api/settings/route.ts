@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/utils/lib/dbConnect";
 import Setting from "@/utils/models/Setting";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 export async function GET() {
   try {
@@ -20,6 +21,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const settings = await Setting.findOneAndUpdate({}, body, {

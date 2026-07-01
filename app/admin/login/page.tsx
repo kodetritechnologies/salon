@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Scissors, Mail, Lock, User, Eye, EyeOff, ArrowRight, ShieldCheck } from "lucide-react";
-import Cookies from "js-cookie";
+import toast from "react-hot-toast";
 import BasicProvider from "@/utils/BasicProvider";
 
 export default function AdminLogin() {
@@ -13,8 +13,7 @@ export default function AdminLogin() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Form fields state
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -24,8 +23,7 @@ export default function AdminLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
-    // Simple UI validations
+
     if (!email || !password) {
       setError("Please fill in all fields.");
       return;
@@ -43,25 +41,31 @@ export default function AdminLogin() {
 
     try {
       const endpoint = isLogin ? "/api/auth/login" : "/api/auth/register";
-      const payload = isLogin 
-        ? { email, password } 
+      const payload = isLogin
+        ? { email, password }
         : { name, email, password };
 
       const data = await postMethod(endpoint, payload);
 
       if (!data || !data.success) {
-        setError(data?.message || "Authentication failed.");
+        toast.error(data?.message || "Authentication failed.");
         setIsLoading(false);
         return;
       }
 
-      // Save token in cookie (expires in 1 day)
-      Cookies.set("adminToken", data.token, { expires: 1 });
-
       setIsLoading(false);
-      router.push("/admin");
+      if (isLogin) {
+        toast.success("Welcome back!");
+        router.push("/admin");
+      } else {
+        toast.success("Registration successful! Please login with your new account.");
+        setIsLogin(true);
+        setName("");
+        setPassword("");
+        setAgreeTerms(false);
+      }
     } catch (err: any) {
-      setError("Network or server connection issue. Please try again.");
+      toast.error("Network or server connection issue. Please try again.");
       setIsLoading(false);
     }
   };
@@ -71,7 +75,7 @@ export default function AdminLogin() {
       {/* Decorative Background Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gold/10 blur-[120px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gold-deep/5 blur-[120px]" />
-      
+
       {/* Premium Login Box */}
       <motion.div
         initial={{ opacity: 0, y: 40 }}
@@ -81,7 +85,7 @@ export default function AdminLogin() {
       >
         {/* Glow border effect */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-gold-deep via-gold to-gold-bright rounded-3xl opacity-30 blur-sm" />
-        
+
         <div className="relative glass-strong rounded-3xl p-8 sm:p-10 shadow-elegant">
           {/* Logo & Header */}
           <div className="flex flex-col items-center text-center mb-8">
@@ -101,8 +105,8 @@ export default function AdminLogin() {
               {isLogin ? "Welcome Back" : "Create Staff Account"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {isLogin 
-                ? "Enter your credentials to access the admin portal" 
+              {isLogin
+                ? "Enter your credentials to access the admin portal"
                 : "Sign up to join our salon staff directory"
               }
             </p>
@@ -220,14 +224,14 @@ export default function AdminLogin() {
               )}
             </div>
 
-            {/* Error Message */}
+            {/* Validation Error Message */}
             <AnimatePresence>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center gap-2 rounded-xl bg-destructive/15 border border-destructive/20 p-3 text-xs text-destructive-foreground"
+                  className="flex items-center gap-2 rounded-xl bg-destructive/15 border border-destructive/20 p-3 text-xs text-destructive-foreground animate-fade-in"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-ping shrink-0" />
                   <span>{error}</span>
@@ -275,7 +279,7 @@ export default function AdminLogin() {
           </div>
         </div>
       </motion.div>
-      
+
       {/* Credential Note at the bottom */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-[11px] text-muted-foreground/60 text-center flex items-center gap-1.5 whitespace-nowrap">
         <ShieldCheck className="h-3 w-3 text-gold/60" />

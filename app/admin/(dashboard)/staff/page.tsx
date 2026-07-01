@@ -9,7 +9,8 @@ import {
   Star
 } from "lucide-react";
 import BasicProvider from "@/utils/BasicProvider";
-import { showSuccess, showError, confirmAction } from "@/utils/helpers/alertHelper";
+import { confirmAction } from "@/utils/helpers/alertHelper";
+import toast from "react-hot-toast";
 
 interface Staff {
   _id: string;
@@ -127,7 +128,7 @@ export default function StaffOrganizer() {
 
       const data = await postMethod("/api/staff", payload);
       if (data && data.success) {
-        showSuccess("Success", "Stylist registered successfully.");
+        toast.success("Stylist registered successfully.");
         fetchStaff();
         setNewStaffName("");
         setNewStaffRole("Barber");
@@ -137,10 +138,10 @@ export default function StaffOrganizer() {
         setErrors({});
         setShowAddStaffModal(false);
       } else {
-        showError("Failed", data.message || "Failed to register stylist.");
+        toast.error(data.message || "Failed to register stylist.");
       }
     } catch (error: any) {
-      showError("Error", error.message || "Something went wrong.");
+      toast.error(error.message || "Something went wrong.");
     }
   };
 
@@ -157,10 +158,10 @@ export default function StaffOrganizer() {
       if (data && data.success) {
         fetchStaff();
       } else {
-        showError("Failed", data.message || "Failed to update status.");
+        toast.error(data.message || "Failed to update status.");
       }
     } catch (error: any) {
-      showError("Error", error.message || "Something went wrong.");
+      toast.error(error.message || "Something went wrong.");
     }
   };
 
@@ -175,13 +176,13 @@ export default function StaffOrganizer() {
     try {
       const data = await deleteMethod(`/api/staff/${id}`, {});
       if (data && data.success) {
-        showSuccess("Deleted", "Stylist removed successfully.");
+        toast.success("Stylist removed successfully.");
         fetchStaff();
       } else {
-        showError("Failed", data.message || "Failed to delete stylist.");
+        toast.error(data.message || "Failed to delete stylist.");
       }
     } catch (error: any) {
-      showError("Error", error.message || "Something went wrong.");
+      toast.error(error.message || "Something went wrong.");
     }
   };
 

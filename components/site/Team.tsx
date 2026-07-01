@@ -38,9 +38,8 @@ export function Team({ initialStaff = [] }: { initialStaff?: any[] }) {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 0.5, delay: i * 0.08 }}
-                  className={`group glass overflow-hidden rounded-3xl shadow-soft transition-all hover:-translate-y-1 hover:shadow-gold ${
-                    !isAvailable ? "opacity-75" : ""
-                  }`}
+                  className={`group glass overflow-hidden rounded-3xl shadow-soft transition-all hover:-translate-y-1 hover:shadow-gold ${!isAvailable ? "opacity-75" : ""
+                    }`}
                 >
                   <div className="relative aspect-[3/4] overflow-hidden">
                     <img
@@ -50,17 +49,15 @@ export function Team({ initialStaff = [] }: { initialStaff?: any[] }) {
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/20 to-transparent" />
-                    
-                    {/* Status Indicator pill */}
+
                     <div className="absolute top-4 right-4 z-10">
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border ${
-                          isAvailable
+                        className={`px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border ${isAvailable
                             ? "bg-emerald-500/80 text-foreground border-emerald-400/30"
                             : isOnBreak
-                            ? "bg-amber-500/80 text-foreground border-amber-400/30"
-                            : "bg-red-500/80 text-foreground border-red-400/30"
-                        }`}
+                              ? "bg-amber-500/80 text-foreground border-amber-400/30"
+                              : "bg-red-500/80 text-foreground border-red-400/30"
+                          }`}
                       >
                         {m.status}
                       </span>

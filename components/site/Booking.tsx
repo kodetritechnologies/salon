@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Calendar, CheckCircle2 } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
 import { io, Socket } from "socket.io-client";
+import BasicProvider from "@/utils/BasicProvider";
 
 let socket: Socket | null = null;
 if (typeof window !== "undefined") {
@@ -17,6 +18,7 @@ if (typeof window !== "undefined") {
 const slots = ["09:30", "11:00", "12:30", "14:00", "15:30", "17:00", "18:30", "20:00"];
 
 export function Booking({ services, staff }: { services?: any[]; staff?: any[] }) {
+  const { getMethod, postMethod } = BasicProvider();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -70,17 +72,13 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     return false;
   };
 
-  // Client-side fetch staff list to make Preferred Barber dynamic
   useEffect(() => {
     let active = true;
     const fetchStaff = async () => {
       try {
-        const response = await fetch("/api/staff");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.staff && active) {
-            setStaffList(data.staff);
-          }
+        const data = await getMethod("/api/staff");
+        if (data && data.success && data.staff && active) {
+          setStaffList(data.staff);
         }
       } catch (err) {
         console.error("Error fetching staff dynamically:", err);
@@ -92,7 +90,6 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     };
   }, [staff]);
 
-  // Listen for select-barber event from the Team component
   useEffect(() => {
     const handleSelectBarber = (e: Event) => {
       const customEvent = e as CustomEvent<{ barberId: string }>;
@@ -109,7 +106,6 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     };
   }, []);
 
-  // Set default form selections
   useEffect(() => {
     const today = getTodayDateString();
     const firstAvailableTime = slots.find((s) => !isSlotInPast(today, s)) || slots[0];
@@ -123,7 +119,6 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     }));
   }, [activeServices, activeStaff]);
 
-  // Dynamically update selected time slot if it is in the past for today
   useEffect(() => {
     if (formDataVal.date) {
       const todayStr = getTodayDateString();
@@ -141,13 +136,11 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     let { name, value } = e.target;
 
     if (name === "phone") {
-      // Allow only numbers
       value = value.replace(/\D/g, "");
     }
 
     setFormDataVal((prev) => ({ ...prev, [name]: value }));
 
-    // Clear field-specific error as the user types/changes
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -156,21 +149,18 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    // Name Validation
     if (!formDataVal.name.trim()) {
       newErrors.name = "Full Name is required.";
     } else if (formDataVal.name.trim().length < 3) {
       newErrors.name = "Name must be at least 3 characters long.";
     }
 
-    // Phone Validation
     if (!formDataVal.phone) {
       newErrors.phone = "Phone Number is required.";
     } else if (formDataVal.phone.length < 10 || formDataVal.phone.length > 15) {
       newErrors.phone = "Phone Number must be between 10 and 15 digits.";
     }
 
-    // Email Validation (Optional)
     if (formDataVal.email) {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!emailRegex.test(formDataVal.email)) {
@@ -178,17 +168,14 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
       }
     }
 
-    // Service Validation
     if (!formDataVal.service) {
       newErrors.service = "Service selection is required.";
     }
 
-    // Barber Validation
     if (!formDataVal.barber) {
       newErrors.barber = "Barber selection is required.";
     }
 
-    // Date Validation
     const todayStr = getTodayDateString();
     if (!formDataVal.date) {
       newErrors.date = "Date is required.";
@@ -196,7 +183,6 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
       newErrors.date = "Appointment date cannot be in the past.";
     }
 
-    // Time Validation
     if (!formDataVal.time) {
       newErrors.time = "Time slot is required.";
     } else if (formDataVal.date === todayStr && isSlotInPast(formDataVal.date, formDataVal.time)) {
@@ -205,7 +191,6 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
 
     setErrors(newErrors);
 
-    // Focus on the first element with an error
     const firstErrorKey = Object.keys(newErrors)[0];
     if (firstErrorKey) {
       setTimeout(() => {
@@ -235,31 +220,24 @@ export function Booking({ services, staff }: { services?: any[]; staff?: any[] }
     const price = selectedService ? selectedService.price : 500;
 
     try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formDataVal.name,
-          phone: formDataVal.phone,
-          email: formDataVal.email,
-          service, // Send service ID
-          barber, // Send staff ID (or "No preference")
-          date: formDataVal.date,
-          time: formDataVal.time,
-          price,
-          status: "Pending",
-          notes: formDataVal.notes,
-        }),
+      const resData = await postMethod("/api/bookings", {
+        name: formDataVal.name,
+        phone: formDataVal.phone,
+        email: formDataVal.email,
+        service,
+        barber,
+        date: formDataVal.date,
+        time: formDataVal.time,
+        price,
+        status: "Pending",
+        notes: formDataVal.notes,
       });
 
-      const resData = await response.json();
       if (resData && resData.success) {
         setSubmitted(true);
-        // Emit socket event for real-time notification
         if (socket && resData.booking) {
           socket.emit("new-booking", resData.booking);
         }
-        // Reset form data
         setFormDataVal({
           name: "",
           phone: "",
@@ -451,9 +429,8 @@ function Field({
         name={name}
         type={type}
         placeholder={placeholder}
-        className={`w-full rounded-full border bg-foreground/5 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-colors focus:bg-foreground/10 ${
-          error ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/60"
-        }`}
+        className={`w-full rounded-full border bg-foreground/5 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-colors focus:bg-foreground/10 ${error ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/60"
+          }`}
         {...props}
       />
       {error && (
@@ -488,9 +465,8 @@ function Select({
       <div className="relative">
         <select
           name={name}
-          className={`w-full appearance-none rounded-full border bg-foreground/5 px-4 py-3 text-sm text-foreground outline-none transition-colors focus:bg-foreground/10 cursor-pointer ${
-            error ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/60"
-          }`}
+          className={`w-full appearance-none rounded-full border bg-foreground/5 px-4 py-3 text-sm text-foreground outline-none transition-colors focus:bg-foreground/10 cursor-pointer ${error ? "border-red-500 focus:border-red-500" : "border-gold/20 focus:border-gold/60"
+            }`}
           {...props}
         >
           {options.map((o) => (

@@ -4,12 +4,20 @@ import Booking from "@/utils/models/Booking";
 import Service from "@/utils/models/Service";
 import Staff from "@/utils/models/Staff";
 import mongoose from "mongoose";
+import { verifyAdmin } from "@/utils/lib/auth";
 
 
-
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
+    const admin = await verifyAdmin(req);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized credentials." },
+        { status: 401 }
+      );
+    }
+
     const bookings = await Booking.find({}).populate("service").populate("barber").sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, bookings }, { status: 200 });
@@ -33,8 +41,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // Resolve service to ObjectId
     let serviceId = null;
     if (mongoose.Types.ObjectId.isValid(service)) {
       serviceId = new mongoose.Types.ObjectId(service);
@@ -49,8 +55,6 @@ export async function POST(req: Request) {
         );
       }
     }
-
-    // Resolve barber to ObjectId
     let barberId = null;
     if (mongoose.Types.ObjectId.isValid(barber)) {
       barberId = new mongoose.Types.ObjectId(barber);
