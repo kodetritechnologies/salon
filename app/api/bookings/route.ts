@@ -3,6 +3,7 @@ import dbConnect from "@/utils/lib/dbConnect";
 import Booking from "@/utils/models/Booking";
 import Service from "@/utils/models/Service";
 import Staff from "@/utils/models/Staff";
+import Customer from "@/utils/models/Customer";
 import mongoose from "mongoose";
 import { verifyAdmin } from "@/utils/lib/auth";
 
@@ -93,6 +94,17 @@ export async function POST(req: Request) {
     });
 
     const populated = await Booking.findById(newBooking._id).populate("service").populate("barber");
+
+    // Auto-create or update Customer based on phone number
+    try {
+      await Customer.findOneAndUpdate(
+        { phone },
+        { name, email: email || "" },
+        { upsert: true, new: true }
+      );
+    } catch (custError) {
+      console.error("Failed to auto-create/update customer on booking:", custError);
+    }
 
     return NextResponse.json(
       { success: true, message: "Booking registered successfully.", booking: populated },

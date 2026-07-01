@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Scissors, Sun, Moon } from "lucide-react";
+import { Menu, X, Scissors, Sun, Moon, User } from "lucide-react";
+import Cookies from "js-cookie";
+import ProfileModal from "./ProfileModal";
 
 const links = [
   { href: "#home", label: "Home" },
@@ -18,6 +20,15 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const token = Cookies.get("customerToken");
+    setTimeout(() => {
+      setIsLoggedIn(!!token);
+    }, 0);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -28,7 +39,9 @@ export function Navbar() {
 
   useEffect(() => {
     const isLight = document.documentElement.classList.contains("light");
-    setTheme(isLight ? "light" : "dark");
+    setTimeout(() => {
+      setTheme(isLight ? "light" : "dark");
+    }, 0);
   }, []);
 
   const toggleTheme = () => {
@@ -95,6 +108,18 @@ export function Navbar() {
                 <Sun className="h-5 w-5" />
               )}
             </button>
+            <button
+              onClick={() => setProfileOpen(true)}
+              className={`grid h-10 w-10 place-items-center rounded-full border transition-colors cursor-pointer ${
+                isLoggedIn
+                  ? "border-gold bg-gold/15 text-gold hover:bg-gold/25"
+                  : "border-gold/30 text-gold hover:bg-gold/10"
+              }`}
+              aria-label="User Profile"
+              title={isLoggedIn ? "My Profile" : "Client Log In"}
+            >
+              <User className="h-5 w-5" />
+            </button>
             <a
               href="#booking"
               className="hidden rounded-full bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-ink shadow-gold transition-transform hover:scale-105 sm:inline-flex"
@@ -103,7 +128,7 @@ export function Navbar() {
             </a>
             <button
               onClick={() => setOpen((v) => !v)}
-              className="grid h-10 w-10 place-items-center rounded-full border border-gold/30 text-gold lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-full border border-gold/30 text-gold lg:hidden animate-fade-in"
               aria-label="Toggle menu"
             >
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -137,11 +162,30 @@ export function Navbar() {
                 >
                   Book Now
                 </a>
+                <button
+                  onClick={() => {
+                    setOpen(false);
+                    setProfileOpen(true);
+                  }}
+                  className={`mt-1 rounded-xl border px-4 py-3 text-center text-sm font-semibold uppercase tracking-wider cursor-pointer ${
+                    isLoggedIn
+                      ? "border-gold bg-gold/15 text-gold hover:bg-gold/25"
+                      : "border-gold/30 text-gold hover:bg-gold/10"
+                  }`}
+                >
+                  {isLoggedIn ? "My Profile" : "Client Log In"}
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onLoginStatusChange={setIsLoggedIn}
+      />
     </motion.header>
   );
 }

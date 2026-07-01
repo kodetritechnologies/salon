@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Quote, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionHeading } from "./SectionHeading";
@@ -57,25 +57,57 @@ export function Testimonials({ initialTestimonials = [] }: { initialTestimonials
   const activeIndex = Math.min(currentIndex, maxIndex);
 
   const [isPaused, setIsPaused] = useState(false);
+  const [isForward, setIsForward] = useState(true);
+  const [resetTrigger, setResetTrigger] = useState(0);
+
+  const activeIndexRef = useRef(activeIndex);
+  const isForwardRef = useRef(isForward);
+
+  // Sync refs with the latest state values
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useEffect(() => {
+    isForwardRef.current = isForward;
+  }, [isForward]);
 
   useEffect(() => {
     if (maxIndex === 0 || isPaused) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => {
-        const active = Math.min(prev, maxIndex);
-        return active >= maxIndex ? 0 : active + 1;
-      });
+      const currentActive = activeIndexRef.current;
+      const currentForward = isForwardRef.current;
+
+      if (currentForward) {
+        if (currentActive >= maxIndex) {
+          setIsForward(false);
+          setCurrentIndex(Math.max(0, maxIndex - 1));
+        } else {
+          setCurrentIndex(currentActive + 1);
+        }
+      } else {
+        if (currentActive <= 0) {
+          setIsForward(true);
+          setCurrentIndex(Math.min(1, maxIndex));
+        } else {
+          setCurrentIndex(currentActive - 1);
+        }
+      }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [maxIndex, isPaused, activeIndex]);
+  }, [maxIndex, isPaused, resetTrigger]);
 
   const next = () => {
+    setResetTrigger((t) => t + 1);
+    setIsForward(true);
     setCurrentIndex(() => Math.min(activeIndex + 1, maxIndex));
   };
 
   const prev = () => {
+    setResetTrigger((t) => t + 1);
+    setIsForward(false);
     setCurrentIndex(() => Math.max(activeIndex - 1, 0));
   };
 
@@ -111,7 +143,10 @@ export function Testimonials({ initialTestimonials = [] }: { initialTestimonials
                   drag="x"
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.2}
+                  onDragStart={() => setIsPaused(true)}
                   onDragEnd={(e, info) => {
+                    setIsPaused(false);
+                    setResetTrigger((t) => t + 1);
                     const swipeThreshold = 50;
                     if (info.offset.x < -swipeThreshold) {
                       next();
@@ -158,7 +193,15 @@ export function Testimonials({ initialTestimonials = [] }: { initialTestimonials
                     {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
                       <button
                         key={idx}
-                        onClick={() => setCurrentIndex(idx)}
+                        onClick={() => {
+                          setResetTrigger((t) => t + 1);
+                          if (idx > activeIndex) {
+                            setIsForward(true);
+                          } else if (idx < activeIndex) {
+                            setIsForward(false);
+                          }
+                          setCurrentIndex(idx);
+                        }}
                         className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
                           idx === activeIndex
                             ? "w-8 bg-gradient-gold"

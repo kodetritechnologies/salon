@@ -15,7 +15,8 @@ import {
   X,
   Info,
   MessageSquare,
-  Image
+  Image,
+  User
 } from "lucide-react";
 import Cookies from "js-cookie";
 import BasicProvider from "@/utils/BasicProvider";
@@ -81,6 +82,7 @@ export default function AdminDashboardLayout({
   const navItems = [
     { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
     { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
+    { href: "/admin/customers", label: "Customers", icon: User },
     { href: "/admin/services", label: "Services", icon: Sparkles },
     { href: "/admin/staff", label: "Staff Crew", icon: Users },
     { href: "/admin/gallery", label: "Gallery", icon: Image },
