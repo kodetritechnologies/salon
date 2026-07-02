@@ -16,10 +16,10 @@ const links = [
   { href: "#contact", label: "Contact" },
 ];
 
-export function Navbar() {
+export function Navbar({ themeSetting = "dark" }: { themeSetting?: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<string>("dark");
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -38,20 +38,46 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    const isLight = document.documentElement.classList.contains("light");
+    const classList = document.documentElement.classList;
+    let activeTheme = themeSetting;
+    
+    if (classList.contains("light")) {
+      activeTheme = "light";
+    } else if (classList.contains("theme-blue")) {
+      activeTheme = "theme-blue";
+    } else if (classList.contains("theme-green")) {
+      activeTheme = "theme-green";
+    }
+    
+    const pref = localStorage.getItem("theme_preference");
+    if (pref === "light") {
+      activeTheme = "light";
+    } else if (pref === "brand") {
+      activeTheme = themeSetting;
+    }
+
     setTimeout(() => {
-      setTheme(isLight ? "light" : "dark");
+      setTheme(activeTheme || "dark");
     }, 0);
-  }, []);
+  }, [themeSetting]);
 
   const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    localStorage.setItem("theme", nextTheme);
-    if (nextTheme === "light") {
-      document.documentElement.classList.add("light");
+    let nextTheme = "light";
+    let pref = "light";
+    if (theme === "light") {
+      nextTheme = themeSetting === "light" ? "dark" : themeSetting;
+      pref = "brand";
     } else {
-      document.documentElement.classList.remove("light");
+      nextTheme = "light";
+      pref = "light";
+    }
+    
+    setTheme(nextTheme);
+    localStorage.setItem("theme_preference", pref);
+    
+    document.documentElement.classList.remove("light", "theme-blue", "theme-green");
+    if (nextTheme !== "dark") {
+      document.documentElement.classList.add(nextTheme);
     }
   };
 

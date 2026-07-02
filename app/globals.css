@@ -166,6 +166,110 @@
   --shadow-soft: 0 8px 30px -10px oklch(0 0 0 / 0.06);
 }
 
+.theme-blue {
+  /* Luxurious Midnight Sapphire Theme — deep blue / gold / cream */
+  --background: oklch(0.12 0.03 240);
+  --foreground: oklch(0.97 0.012 85);
+  --card: oklch(0.16 0.04 240);
+  --card-foreground: oklch(0.97 0.012 85);
+  --popover: oklch(0.16 0.04 240);
+  --popover-foreground: oklch(0.97 0.012 85);
+  --primary: oklch(0.82 0.14 85); /* signature gold */
+  --primary-foreground: oklch(0.12 0.03 240);
+  --secondary: oklch(0.22 0.05 240);
+  --secondary-foreground: oklch(0.97 0.012 85);
+  --muted: oklch(0.19 0.03 240);
+  --muted-foreground: oklch(0.75 0.02 80);
+  --accent: oklch(0.72 0.16 70);
+  --accent-foreground: oklch(0.12 0.03 240);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.97 0.012 85);
+  --border: oklch(0.82 0.14 85 / 0.18);
+  --input: oklch(0.97 0.012 85 / 0.1);
+  --ring: oklch(0.82 0.14 85);
+  --chart-1: oklch(0.82 0.14 85);
+  --chart-2: oklch(0.72 0.16 70);
+  --chart-3: oklch(0.5 0.08 60);
+  --chart-4: oklch(0.35 0.04 55);
+  --chart-5: oklch(0.6 0.12 80);
+  --sidebar: oklch(0.12 0.03 240);
+  --sidebar-foreground: oklch(0.97 0.012 85);
+  --sidebar-primary: oklch(0.82 0.14 85);
+  --sidebar-primary-foreground: oklch(0.12 0.03 240);
+  --sidebar-accent: oklch(0.19 0.03 240);
+  --sidebar-accent-foreground: oklch(0.97 0.012 85);
+  --sidebar-border: oklch(0.82 0.14 85 / 0.18);
+  --sidebar-ring: oklch(0.82 0.14 85);
+
+  /* Brand-specific tokens */
+  --gold: oklch(0.82 0.14 85);
+  --gold-bright: oklch(0.9 0.16 90);
+  --gold-deep: oklch(0.62 0.13 75);
+  --bronze: oklch(0.55 0.11 60);
+  --brown-deep: oklch(0.22 0.02 50);
+  --ink: oklch(0.1 0.008 60);
+
+  --gradient-gold: linear-gradient(135deg, oklch(0.9 0.16 90) 0%, oklch(0.72 0.14 75) 50%, oklch(0.55 0.11 60) 100%);
+  --gradient-dark: linear-gradient(180deg, oklch(0.12 0.03 240) 0%, oklch(0.08 0.02 230) 100%);
+  --gradient-hero: linear-gradient(180deg, oklch(0.12 0.03 240 / 0.55) 0%, oklch(0.08 0.02 230 / 0.92) 100%);
+
+  --shadow-gold: 0 20px 50px -20px oklch(0.82 0.14 85 / 0.45);
+  --shadow-elegant: 0 30px 80px -30px oklch(0 0 0 / 0.7);
+  --shadow-soft: 0 8px 30px -10px oklch(0 0 0 / 0.4);
+}
+
+.theme-green {
+  /* Luxurious Emerald Forest Theme — deep green / gold / cream */
+  --background: oklch(0.12 0.03 150);
+  --foreground: oklch(0.97 0.012 85);
+  --card: oklch(0.16 0.04 150);
+  --card-foreground: oklch(0.97 0.012 85);
+  --popover: oklch(0.16 0.04 150);
+  --popover-foreground: oklch(0.97 0.012 85);
+  --primary: oklch(0.82 0.14 85); /* signature gold */
+  --primary-foreground: oklch(0.12 0.03 150);
+  --secondary: oklch(0.22 0.05 150);
+  --secondary-foreground: oklch(0.97 0.012 85);
+  --muted: oklch(0.19 0.03 150);
+  --muted-foreground: oklch(0.75 0.02 80);
+  --accent: oklch(0.72 0.16 70);
+  --accent-foreground: oklch(0.12 0.03 150);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.97 0.012 85);
+  --border: oklch(0.82 0.14 85 / 0.18);
+  --input: oklch(0.97 0.012 85 / 0.1);
+  --ring: oklch(0.82 0.14 85);
+  --chart-1: oklch(0.82 0.14 85);
+  --chart-2: oklch(0.72 0.16 70);
+  --chart-3: oklch(0.5 0.08 60);
+  --chart-4: oklch(0.35 0.04 55);
+  --chart-5: oklch(0.6 0.12 80);
+  --sidebar: oklch(0.12 0.03 150);
+  --sidebar-foreground: oklch(0.97 0.012 85);
+  --sidebar-primary: oklch(0.82 0.14 85);
+  --sidebar-primary-foreground: oklch(0.12 0.03 150);
+  --sidebar-accent: oklch(0.19 0.03 150);
+  --sidebar-accent-foreground: oklch(0.97 0.012 85);
+  --sidebar-border: oklch(0.82 0.14 85 / 0.18);
+  --sidebar-ring: oklch(0.82 0.14 85);
+
+  /* Brand-specific tokens */
+  --gold: oklch(0.82 0.14 85);
+  --gold-bright: oklch(0.9 0.16 90);
+  --gold-deep: oklch(0.62 0.13 75);
+  --bronze: oklch(0.55 0.11 60);
+  --brown-deep: oklch(0.22 0.02 50);
+  --ink: oklch(0.1 0.008 60);
+
+  --gradient-gold: linear-gradient(135deg, oklch(0.9 0.16 90) 0%, oklch(0.72 0.14 75) 50%, oklch(0.55 0.11 60) 100%);
+  --gradient-dark: linear-gradient(180deg, oklch(0.12 0.03 150) 0%, oklch(0.08 0.02 140) 100%);
+  --gradient-hero: linear-gradient(180deg, oklch(0.12 0.03 150 / 0.55) 0%, oklch(0.08 0.02 140 / 0.92) 100%);
+
+  --shadow-gold: 0 20px 50px -20px oklch(0.82 0.14 85 / 0.45);
+  --shadow-elegant: 0 30px 80px -30px oklch(0 0 0 / 0.7);
+  --shadow-soft: 0 8px 30px -10px oklch(0 0 0 / 0.4);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

@@ -59,7 +59,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen overflow-x-clip bg-background text-foreground">
-      <Navbar />
+      <Navbar themeSetting={dbSettings?.theme} />
       <main>
         <Hero settings={dbSettings} services={dbServices} />
         <Services initialServices={dbServices} />

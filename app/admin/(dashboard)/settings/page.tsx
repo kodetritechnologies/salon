@@ -24,6 +24,7 @@ export default function SettingsManager() {
   const [facebookUsername, setFacebookUsername] = useState("");
   const [bannerText, setBannerText] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+  const [theme, setTheme] = useState("dark");
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -45,6 +46,7 @@ export default function SettingsManager() {
           setFacebookUsername(s.facebookUsername || "");
           setBannerText(s.bannerText || "");
           setShowBanner(s.showBanner !== undefined ? s.showBanner : true);
+          setTheme(s.theme || "dark");
         }
       } catch (error: any) {
         console.error("Error loading settings:", error);
@@ -68,6 +70,7 @@ export default function SettingsManager() {
         facebookUsername,
         bannerText,
         showBanner,
+        theme,
         ...updatedFields,
       };
 
@@ -468,6 +471,121 @@ export default function SettingsManager() {
             className="w-full text-center bg-gradient-gold py-3.5 rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.01] transition-transform cursor-pointer"
           >
             Update Live Alerts
+          </button>
+        </div>
+      </div>
+
+      {/* Website Appearance Config */}
+      <div className="glass p-6 sm:p-8 rounded-3xl shadow-elegant space-y-6">
+        <div>
+          <h3 className="font-display text-lg font-bold text-foreground border-b border-gold/15 pb-2.5">
+            Website Theme & Brand Appearance
+          </h3>
+          <p className="text-xs text-muted-foreground mt-2">
+            Select the default color theme for your premium barber salon website. This will set the primary visual identity for all visiting customers.
+          </p>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+          {[
+            {
+              id: "dark",
+              name: "Royal Dark",
+              desc: "Signature gold & rich warm dark colors",
+              bg: "bg-[oklch(0.13_0.012_60)]",
+              cardBg: "bg-[oklch(0.17_0.014_60)]",
+              textColor: "text-[oklch(0.97_0.012_85)]",
+              accentColor: "bg-[oklch(0.82_0.14_85)]",
+            },
+            {
+              id: "light",
+              name: "Elegant Cream",
+              desc: "Polished ivory, warm beige & gold accents",
+              bg: "bg-[oklch(0.98_0.006_70)]",
+              cardBg: "bg-[oklch(0.95_0.01_70)]",
+              textColor: "text-[oklch(0.16_0.012_60)]",
+              accentColor: "bg-[oklch(0.65_0.13_75)]",
+            },
+            {
+              id: "theme-blue",
+              name: "Midnight Sapphire",
+              desc: "Deep sapphire blue & gold branding",
+              bg: "bg-[oklch(0.12_0.03_240)]",
+              cardBg: "bg-[oklch(0.16_0.04_240)]",
+              textColor: "text-[oklch(0.97_0.012_85)]",
+              accentColor: "bg-[oklch(0.82_0.14_85)]",
+            },
+            {
+              id: "theme-green",
+              name: "Emerald Forest",
+              desc: "Rich forest green & gold accents",
+              bg: "bg-[oklch(0.12_0.03_150)]",
+              cardBg: "bg-[oklch(0.16_0.04_150)]",
+              textColor: "text-[oklch(0.97_0.012_85)]",
+              accentColor: "bg-[oklch(0.82_0.14_85)]",
+            },
+          ].map((themeOpt) => {
+            const isSelected = theme === themeOpt.id;
+            return (
+              <div
+                key={themeOpt.id}
+                onClick={() => setTheme(themeOpt.id)}
+                className={`relative flex flex-col justify-between p-5 rounded-2xl cursor-pointer transition-all border-2 duration-300 hover:scale-[1.02] ${
+                  isSelected
+                    ? "border-gold bg-gold/10 shadow-gold"
+                    : "border-gold/10 hover:border-gold/30 bg-card/40"
+                }`}
+              >
+                {/* Small Theme Preview Mockup */}
+                <div className={`w-full h-24 rounded-lg p-2.5 flex flex-col justify-between mb-4 border border-gold/15 overflow-hidden ${themeOpt.bg}`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[8px] font-bold tracking-wider ${themeOpt.textColor}`}>ROYAL SALON</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  </div>
+                  <div className={`p-2 rounded-md ${themeOpt.cardBg} border border-gold/5 flex flex-col gap-1`}>
+                    <div className={`h-1.5 w-12 rounded-full ${themeOpt.accentColor}`} />
+                    <div className="h-1 w-8 rounded-full bg-white/20" />
+                  </div>
+                  <div className="flex justify-end">
+                    <div className={`px-2 py-0.5 rounded-full text-[6px] font-bold text-black ${themeOpt.accentColor}`}>
+                      Book
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-display text-sm font-bold text-foreground">
+                    {themeOpt.name}
+                  </h4>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-normal animate-fade-in">
+                    {themeOpt.desc}
+                  </p>
+                </div>
+
+                {isSelected && (
+                  <div className="absolute top-2 right-2 bg-gradient-gold h-4 w-4 rounded-full flex items-center justify-center border border-ink shadow-sm animate-scale-up">
+                    <svg
+                      className="h-2.5 w-2.5 text-ink"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={4}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-end border-t border-gold/15 pt-4">
+          <button
+            onClick={() => saveAllSettings({ theme })}
+            className="w-full sm:w-auto px-8 py-3.5 bg-gradient-gold rounded-full text-xs font-bold text-ink shadow-gold hover:scale-[1.01] transition-transform cursor-pointer"
+          >
+            Apply & Save Theme
           </button>
         </div>
       </div>

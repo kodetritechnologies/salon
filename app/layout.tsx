@@ -3,6 +3,9 @@ import { Playfair_Display, Poppins } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
+import dbConnect from "@/utils/lib/dbConnect";
+import Setting from "@/utils/models/Setting";
+
 const playfairDisplay = Playfair_Display({
   variable: "--font-display-custom",
   subsets: ["latin"],
@@ -37,15 +40,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let dbTheme = "dark";
+  try {
+    await dbConnect();
+    const settings = await Setting.findOne({});
+    if (settings && settings.theme) {
+      dbTheme = settings.theme;
+    }
+  } catch (error) {
+    console.error("Failed to query settings for theme in RootLayout:", error);
+  }
+
   return (
     <html
       lang="en"
-      className={`${playfairDisplay.variable} ${poppins.variable} h-full antialiased`}
+      className={`${playfairDisplay.variable} ${poppins.variable} h-full antialiased ${dbTheme !== "dark" ? dbTheme : ""}`}
     >
       <head>
         <script
@@ -53,11 +67,30 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme') || 'dark';
-                  if (theme === 'light') {
-                    document.documentElement.classList.add('light');
+                  const pref = localStorage.getItem('theme_preference');
+                  const dbTheme = '${dbTheme}';
+                  let activeTheme = dbTheme;
+                  
+                  if (pref === 'light') {
+                    activeTheme = 'light';
+                  } else if (pref === 'brand') {
+                    activeTheme = dbTheme;
                   } else {
-                    document.documentElement.classList.remove('light');
+                    // Migrate legacy 'theme' keys to prevent stale settings blocking new admin themes
+                    const legacyTheme = localStorage.getItem('theme');
+                    if (legacyTheme === 'light') {
+                      activeTheme = 'light';
+                      localStorage.setItem('theme_preference', 'light');
+                    } else if (legacyTheme) {
+                      activeTheme = dbTheme;
+                      localStorage.setItem('theme_preference', 'brand');
+                    }
+                    localStorage.removeItem('theme');
+                  }
+                  
+                  document.documentElement.classList.remove('light', 'theme-blue', 'theme-green');
+                  if (activeTheme !== 'dark') {
+                    document.documentElement.classList.add(activeTheme);
                   }
                 } catch (e) {}
               })()

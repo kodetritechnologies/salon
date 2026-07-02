@@ -51,8 +51,17 @@ const SettingSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    theme: {
+      type: String,
+      enum: ["dark", "light", "theme-blue", "theme-green"],
+      default: "dark",
+    },
   },
   { timestamps: true }
 );
 
-export default models.Setting || model("Setting", SettingSchema);
+if (mongoose.models && mongoose.models.Setting) {
+  delete mongoose.models.Setting;
+}
+
+export default mongoose.models.Setting || mongoose.model("Setting", SettingSchema);
